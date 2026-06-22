@@ -12,6 +12,20 @@ class Click:
 
 
 @dataclass(frozen=True)
+class DoubleClick:
+    x: int
+    y: int
+    button: str = "left"
+
+
+@dataclass(frozen=True)
+class TripleClick:
+    x: int
+    y: int
+    button: str = "left"
+
+
+@dataclass(frozen=True)
 class Type:
     text: str
 
@@ -53,7 +67,7 @@ class Wait:
     ms: int
 
 
-Action = Click | Type | Key | Scroll | Move | Drag | Screenshot | Wait
+Action = Click | DoubleClick | TripleClick | Type | Key | Scroll | Move | Drag | Screenshot | Wait
 
 
 @dataclass(frozen=True)
