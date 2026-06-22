@@ -58,6 +58,24 @@ async def test_screenshot_returns_image_field():
     assert shot == "ABC123"
 
 
+async def test_screenshot_raises_on_agent_failure():
+    # A failed capture must surface, not silently return an empty image.
+    client = FakeClient(shot_data={"ok": False, "error": "scrot not found"})
+    ex = DesktopExecutor(client)
+    import pytest
+    with pytest.raises(RuntimeError, match="scrot not found"):
+        await ex.screenshot()
+
+
+async def test_do_reports_failure_when_screenshot_fails():
+    # do() wraps screenshot(); a failed capture yields a failed StepResult.
+    client = FakeClient(do_data={"ok": True}, shot_data={"ok": False, "error": "no display"})
+    ex = DesktopExecutor(client)
+    result = await ex.do(Click(1, 1))
+    assert result.success is False
+    assert "no display" in (result.error or "")
+
+
 async def test_unknown_action_yields_failed_step_not_raise():
     # action_to_payload rejects an unknown action type; do() must not raise.
     class Weird:
