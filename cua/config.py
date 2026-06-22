@@ -26,7 +26,6 @@ def build_executor(name, *, page=None, client=None, display_size=(1280, 800)):
     key = name.strip().lower()
     if key == "web":
         if page is None:
-            from playwright.async_api import async_playwright  # lazy; container/host only
             raise RuntimeError(
                 "build_executor('web') without an injected page requires launching "
                 "Playwright; pass page=<playwright page> or launch it in the caller"

@@ -23,8 +23,8 @@ class DesktopExecutor:
         return resp.json().get("image", "")
 
     async def do(self, action: Action) -> StepResult:
-        payload = action_to_payload(action)
         try:
+            payload = action_to_payload(action)
             resp = await self.client.post(self.base_url + "/do", json=payload)
             data = resp.json()
             if not data.get("ok", False):

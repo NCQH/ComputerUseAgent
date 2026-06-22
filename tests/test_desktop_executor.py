@@ -56,3 +56,15 @@ async def test_screenshot_returns_image_field():
     ex = DesktopExecutor(client)
     shot = await ex.screenshot()
     assert shot == "ABC123"
+
+
+async def test_unknown_action_yields_failed_step_not_raise():
+    # action_to_payload rejects an unknown action type; do() must not raise.
+    class Weird:
+        pass
+    client = FakeClient()
+    ex = DesktopExecutor(client)
+    result = await ex.do(Weird())
+    assert result.success is False
+    assert (result.error or "") != ""
+    assert client.posts == []  # never reached the POST
