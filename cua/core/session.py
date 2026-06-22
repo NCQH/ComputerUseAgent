@@ -58,44 +58,51 @@ class AgentSession:
     async def run(self) -> None:
         self._set_state(SessionState.RUNNING)
         steps = 0
-        while steps < self.max_steps:
-            for text in self.queue.drain():
-                self.history.add_user(text)
-                self.bus.publish(LogMessage(text=f"New request: {text}"))
+        try:
+            while steps < self.max_steps:
+                for text in self.queue.drain():
+                    self.history.add_user(text)
+                    self.bus.publish(LogMessage(text=f"New request: {text}"))
 
-            screenshot = await self.executor.screenshot()
-            self.bus.publish(ScreenshotTaken(screenshot_b64=screenshot))
+                try:
+                    screenshot = await self.executor.screenshot()
+                except Exception as exc:  # noqa: BLE001 — surfaced, not swallowed
+                    self.history.add_error(str(exc))
+                    self.bus.publish(ErrorOccurred(message=str(exc)))
+                    break
 
-            try:
-                resp = await self.provider.next_actions(screenshot, self.history)
-            except Exception as exc:  # noqa: BLE001 — surfaced, not swallowed
-                self.history.add_error(str(exc))
-                self.bus.publish(ErrorOccurred(message=str(exc)))
-                break
+                self.bus.publish(ScreenshotTaken(screenshot_b64=screenshot))
 
-            self.history.add_assistant(resp.assistant_text)
+                try:
+                    resp = await self.provider.next_actions(screenshot, self.history)
+                except Exception as exc:  # noqa: BLE001 — surfaced, not swallowed
+                    self.history.add_error(str(exc))
+                    self.bus.publish(ErrorOccurred(message=str(exc)))
+                    break
 
-            if resp.done and self.queue.is_empty():
-                break
+                self.history.add_assistant(resp.assistant_text)
 
-            for action in resp.actions:
-                needs, reason = self.gate.needs_confirmation(
-                    action, resp.assistant_text, resp.model_flagged_risky
-                )
-                if needs:
-                    request = ConfirmRequest(action=action, reason=reason)
-                    self._set_state(SessionState.WAITING_CONFIRM)
-                    self.bus.publish(ConfirmRequested(request=request))
-                    approved = await self.confirm_handler(request)
-                    self._set_state(SessionState.RUNNING)
-                    if not approved:
-                        self.history.add_error(f"User rejected: {action} ({reason})")
-                        continue
+                if resp.done and self.queue.is_empty():
+                    break
 
-                result = await self.executor.do(action)
-                self.history.add_action_result(action, result)
-                self.bus.publish(StepCompleted(action=action, result=result))
+                for action in resp.actions:
+                    needs, reason = self.gate.needs_confirmation(
+                        action, resp.assistant_text, resp.model_flagged_risky
+                    )
+                    if needs:
+                        request = ConfirmRequest(action=action, reason=reason)
+                        self._set_state(SessionState.WAITING_CONFIRM)
+                        self.bus.publish(ConfirmRequested(request=request))
+                        approved = await self.confirm_handler(request)
+                        self._set_state(SessionState.RUNNING)
+                        if not approved:
+                            self.history.add_error(f"User rejected: {action} ({reason})")
+                            continue
 
-            steps += 1
+                    result = await self.executor.do(action)
+                    self.history.add_action_result(action, result)
+                    self.bus.publish(StepCompleted(action=action, result=result))
 
-        self._set_state(SessionState.IDLE)
+                steps += 1
+        finally:
+            self._set_state(SessionState.IDLE)

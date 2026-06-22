@@ -120,3 +120,27 @@ async def test_max_steps_stops_runaway_loop():
     await session.run()
     assert len(executor.performed) == 3
     assert session.state is SessionState.IDLE
+
+
+async def test_screenshot_failure_is_surfaced_and_state_resets():
+    """I-2: executor.screenshot() failure must publish ErrorOccurred and reset state to IDLE."""
+
+    class BoomExecutor(FakeExecutor):
+        async def screenshot(self) -> str:
+            raise RuntimeError("display lost")
+
+    provider = FakeProvider([
+        ProviderResponse([], done=True, assistant_text="never reached", model_flagged_risky=False),
+    ])
+    executor = BoomExecutor()
+    errors = []
+    bus = EventBus()
+    bus.subscribe(lambda e: errors.append(e) if isinstance(e, ErrorOccurred) else None)
+    session = _session(provider, executor, bus=bus)
+    await session.submit("go")
+    await session.run()
+    # (a) ErrorOccurred was published with the exception message
+    assert len(errors) == 1
+    assert "display lost" in errors[0].message
+    # (b) session must return to IDLE, not stay RUNNING
+    assert session.state is SessionState.IDLE
