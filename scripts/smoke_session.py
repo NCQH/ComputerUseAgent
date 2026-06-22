@@ -1,0 +1,121 @@
+"""Live smoke of the full AgentSession loop + safety gate against a REAL backend.
+
+A scripted provider stands in for the LLM (no API key). It drives the real
+AgentSession, real IrreversibilityGate, real EventBus, and the real
+DesktopExecutor talking to a real HTTP server over a real socket. Shows:
+  1. a normal action executing,
+  2. a denylisted "Submit" action pausing for confirmation and being rejected.
+"""
+import asyncio
+import json
+import os
+import sys
+import threading
+from http.server import BaseHTTPRequestHandler, HTTPServer
+
+# Windows consoles default to cp1252; the gate's reason strings are Vietnamese.
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "docker", "desktop"))
+from agent import perform  # noqa: E402
+
+import httpx  # noqa: E402
+from cua.executors.desktop import DesktopExecutor  # noqa: E402
+from cua.core.events import EventBus  # noqa: E402
+from cua.core.queue import InputQueue  # noqa: E402
+from cua.core.safety import IrreversibilityGate  # noqa: E402
+from cua.core.session import AgentSession  # noqa: E402
+from cua.ui.format import format_event  # noqa: E402
+from cua.models import Click, ProviderResponse  # noqa: E402
+
+
+class FakeGui:
+    def moveTo(self, x, y): pass
+    def click(self, **k): pass
+    def typewrite(self, t): pass
+    def hotkey(self, *k): pass
+    def scroll(self, a): pass
+    def hscroll(self, a): pass
+    def screenshot(self): return b"PNG"
+
+
+GUI = FakeGui()
+
+
+class Handler(BaseHTTPRequestHandler):
+    def log_message(self, *a): pass
+    def _send(self, obj):
+        body = json.dumps(obj).encode()
+        self.send_response(200); self.send_header("Content-Length", str(len(body)))
+        self.end_headers(); self.wfile.write(body)
+    def do_GET(self): self._send(perform({"action": "screenshot"}, GUI))
+    def do_POST(self):
+        n = int(self.headers.get("Content-Length", 0))
+        self._send(perform(json.loads(self.rfile.read(n) or b"{}"), GUI))
+
+
+class ScriptedProvider:
+    """Stands in for Claude/OpenAI: emits a safe action, then a risky one, then done."""
+    display_size = (1280, 800)
+
+    def __init__(self):
+        self._steps = [
+            ProviderResponse([Click(10, 10)], done=False,
+                             assistant_text="clicking the search box", model_flagged_risky=False),
+            ProviderResponse([Click(200, 400)], done=False,
+                             assistant_text="click the Submit button", model_flagged_risky=False),
+            ProviderResponse([], done=True, assistant_text="finished", model_flagged_risky=False),
+        ]
+        self._i = 0
+
+    async def next_actions(self, screenshot_b64, history):
+        r = self._steps[self._i]
+        self._i += 1
+        return r
+
+
+async def main():
+    server = HTTPServer(("127.0.0.1", 0), Handler)
+    port = server.server_address[1]
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+
+    confirm_log = []
+
+    async def reject_confirm(request):
+        confirm_log.append(request)
+        print(f"  >>> CONFIRM ASKED: {request.reason} -> auto-REJECT")
+        return False
+
+    async with httpx.AsyncClient() as client:
+        executor = DesktopExecutor(client, base_url=f"http://127.0.0.1:{port}")
+        bus = EventBus()
+        bus.subscribe(lambda e: (lambda s: print("  [event]", s) if s else None)(format_event(e)))
+        session = AgentSession(
+            provider=ScriptedProvider(),
+            executor=executor,
+            gate=IrreversibilityGate(),     # default denylist incl. "submit"
+            bus=bus,
+            queue=InputQueue(),
+            confirm_handler=reject_confirm,
+            max_steps=10,
+        )
+        await session.submit("tìm kiếm rồi gửi biểu mẫu")
+        print("[run] starting agent loop against the live backend...\n")
+        await session.run()
+
+    server.shutdown()
+
+    print("\n[verify]")
+    print(f"  confirmations asked: {len(confirm_log)} (expected 1 — the 'Submit' click)")
+    assert len(confirm_log) == 1
+    assert "submit" in confirm_log[0].reason.lower()
+    print(f"  reason: {confirm_log[0].reason}")
+    print(f"  final session state: {session.state.value}")
+    print("\n[OK] full loop + safety gate ran live; the irreversible 'Submit' was held for confirmation.")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
