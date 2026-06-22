@@ -81,3 +81,27 @@ async def test_second_call_sends_computer_call_output_with_screenshot():
     assert out_item["type"] == "computer_call_output"
     assert out_item["call_id"] == "call_1"
     assert out_item["output"]["type"] == "computer_screenshot"
+
+
+async def test_pending_call_id_reset_when_done():
+    """After a done response (no computer_call), _pending_call_id must be None.
+
+    If it is not reset, a subsequent task on the same provider instance would
+    incorrectly enter the subsequent-call branch and send a stale
+    computer_call_output against an already-finished response.
+    """
+    r1 = _Resp("resp_1", [_Item(type="computer_call", call_id="call_42",
+                                action={"type": "click", "x": 5, "y": 5})])
+    r2 = _Resp("resp_2", [_Item(type="message", content=[_Item(type="output_text", text="done")])])
+    client = FakeClient([r1, r2])
+    provider = OpenAIProvider(client=client)
+    h = History(); h.add_user("start")
+
+    # First call: sets _pending_call_id to "call_42"
+    await provider.next_actions("img1", h)
+    assert provider._pending_call_id == "call_42"
+
+    # Second call: no computer_call in response → done=True, must reset _pending_call_id
+    out = await provider.next_actions("img2", h)
+    assert out.done is True
+    assert provider._pending_call_id is None

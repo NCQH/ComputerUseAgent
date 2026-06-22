@@ -82,6 +82,7 @@ class OpenAIProvider:
             done = False
             risky = bool(self._pending_safety_checks)
         else:
+            self._pending_call_id = None
             actions = []
             done = True
             risky = False
