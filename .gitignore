@@ -1,0 +1,10 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+
+# SDD scratch (handoff briefs, reports, review packages, progress ledger)
+.superpowers/
