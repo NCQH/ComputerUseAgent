@@ -8,3 +8,8 @@ venv/
 
 # SDD scratch (handoff briefs, reports, review packages, progress ledger)
 .superpowers/
+
+# Secrets — never commit real API keys
+.env
+.env.*
+!.env.example
