@@ -58,7 +58,9 @@ def perform(payload: dict, gui) -> dict:
 
 def _make_real_gui():
     """Build a pyautogui-backed gui whose screenshot() returns PNG bytes."""
-    import io
+    import os
+    import subprocess
+    import tempfile
     import pyautogui  # imported lazily; only available inside the container
 
     class _Gui:
@@ -70,10 +72,22 @@ def _make_real_gui():
         def hotkey(self, *keys): pyautogui.hotkey(*keys)
         def scroll(self, amount): pyautogui.scroll(amount)
         def hscroll(self, amount): pyautogui.hscroll(amount)
+
         def screenshot(self):
-            buf = io.BytesIO()
-            pyautogui.screenshot().save(buf, format="PNG")
-            return buf.getvalue()
+            # Use scrot directly: pyautogui's pyscreeze backend requires
+            # gnome-screenshot on Linux, which is heavy and unreliable headless.
+            # scrot captures the Xvfb display cleanly and is already installed.
+            fd, path = tempfile.mkstemp(suffix=".png")
+            os.close(fd)
+            try:
+                subprocess.run(["scrot", "-o", path], check=True)
+                with open(path, "rb") as f:
+                    return f.read()
+            finally:
+                try:
+                    os.remove(path)
+                except OSError:
+                    pass
 
     return _Gui()
 

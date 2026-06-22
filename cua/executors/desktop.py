@@ -20,7 +20,10 @@ class DesktopExecutor:
 
     async def screenshot(self) -> str:
         resp = await self.client.get(self.base_url + "/screenshot")
-        return resp.json().get("image", "")
+        data = resp.json()
+        if not data.get("ok", False):
+            raise RuntimeError(f"screenshot failed: {data.get('error', 'unknown')}")
+        return data.get("image", "")
 
     async def do(self, action: Action) -> StepResult:
         try:
