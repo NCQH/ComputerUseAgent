@@ -11,6 +11,7 @@ requires-python = ">=3.11"
 web = ["playwright>=1.40"]
 desktop = ["httpx>=0.27"]
 test = ["pytest>=8", "pytest-asyncio>=0.23"]
+ui = ["prompt_toolkit>=3.0", "PySide6>=6.6", "qasync>=0.27"]
 
 [tool.setuptools.packages.find]
 include = ["cua*"]
