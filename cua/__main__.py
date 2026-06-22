@@ -41,7 +41,7 @@ def main(argv=None) -> None:
 
         # Bind the confirm handler to stdin so prompts share the terminal.
         async def ask() -> str:
-            return await asyncio.get_event_loop().run_in_executor(None, input)
+            return await asyncio.get_running_loop().run_in_executor(None, input)
 
         session.confirm_handler = make_cli_confirm_handler(print, ask)
         asyncio.run(run_cli(session))
