@@ -2,6 +2,8 @@ import pytest
 from cua.app import build_session, validate_display_size
 from cua.core.session import AgentSession
 from cua.core.events import EventBus
+from cua.core.queue import InputQueue
+from cua.core.safety import IrreversibilityGate
 from cua.providers.anthropic import AnthropicProvider
 from cua.executors.web import WebExecutor
 
@@ -11,7 +13,8 @@ async def _confirm(_req):
 
 
 def test_validate_display_size_rejects_bad_values():
-    for bad in [(0, 100), (100, -1), (100,), "1280x800", (1280, 800, 1)]:
+    for bad in [(0, 100), (100, -1), (100,), "1280x800", (1280, 800, 1),
+                (True, 800), (800, False), (1.0, 800)]:
         with pytest.raises(ValueError):
             validate_display_size(bad)
     validate_display_size((1280, 800))  # valid → no raise
@@ -31,6 +34,10 @@ def test_build_session_wires_claude_web():
     assert isinstance(session.bus, EventBus)
     assert session.executor.display_size == (800, 600)
     assert session.confirm_handler is _confirm
+    # the gate/queue/max_steps must actually be wired into the session
+    assert isinstance(session.gate, IrreversibilityGate)
+    assert isinstance(session.queue, InputQueue)
+    assert session.max_steps == 50
 
 
 def test_build_session_rejects_bad_display_size():
