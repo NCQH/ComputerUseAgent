@@ -12,6 +12,9 @@ def validate_display_size(display_size) -> None:
     if not isinstance(display_size, (tuple, list)) or len(display_size) != 2:
         raise ValueError(f"display_size must be a 2-tuple, got {display_size!r}")
     w, h = display_size
+    # bool is a subclass of int — reject it explicitly so (True, 800) is not (1, 800).
+    if isinstance(w, bool) or isinstance(h, bool):
+        raise ValueError(f"display_size dimensions must be ints, not bools, got {display_size!r}")
     if not (isinstance(w, int) and isinstance(h, int)) or w <= 0 or h <= 0:
         raise ValueError(f"display_size must be positive ints, got {display_size!r}")
 

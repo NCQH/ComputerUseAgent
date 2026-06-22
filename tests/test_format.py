@@ -25,10 +25,10 @@ def test_log_message_passthrough():
 
 
 def test_confirm_request_line():
-    req = ConfirmRequest(action=Click(5, 5), reason="denylist: submit")
+    action = Click(5, 5)
+    req = ConfirmRequest(action=action, reason="denylist: submit")
     out = format_event(ConfirmRequested(request=req))
-    assert "denylist: submit" in out
-    assert out.startswith("[confirm]")
+    assert out == f"[confirm] denylist: submit :: {action}"
 
 
 def test_error_line():
