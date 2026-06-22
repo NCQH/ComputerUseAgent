@@ -1,0 +1,9 @@
+# Normalize line endings. Shell scripts MUST stay LF or they break in Linux
+# containers (a CRLF shebang makes `env` look for `bash\r`).
+* text=auto eol=lf
+*.sh text eol=lf
+docker/desktop/entrypoint.sh text eol=lf
+
+# Windows-only batch files keep CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
