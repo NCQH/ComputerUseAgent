@@ -10,7 +10,8 @@ RUN pip install --no-cache-dir pyautogui pillow
 WORKDIR /app
 COPY agent.py /app/agent.py
 COPY entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
+# Strip any CR (Windows checkouts produce CRLF, which breaks the shebang).
+RUN sed -i 's/\r$//' /app/entrypoint.sh && chmod +x /app/entrypoint.sh
 
 ENV DISPLAY=:99
 EXPOSE 8000 5900
