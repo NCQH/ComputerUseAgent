@@ -27,6 +27,14 @@ def _blocks_to_dicts(content) -> list[dict]:
             out.append({"type": "text", "text": b.text})
         elif b.type == "tool_use":
             out.append({"type": "tool_use", "id": b.id, "name": b.name, "input": b.input})
+        elif b.type == "thinking":
+            out.append({
+                "type": "thinking",
+                "thinking": getattr(b, "thinking", None),
+                "signature": getattr(b, "signature", None),
+            })
+        elif b.type == "redacted_thinking":
+            out.append({"type": "redacted_thinking", "data": getattr(b, "data", None)})
     return out
 
 
@@ -88,6 +96,7 @@ class AnthropicProvider:
             actions = [claude_action_to_neutral(tool_use.input)]
             done = False
         else:
+            self._pending_tool_use_id = None
             actions = []
             done = resp.stop_reason == "end_turn"
 

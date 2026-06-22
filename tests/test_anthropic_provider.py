@@ -92,3 +92,56 @@ async def test_new_user_request_is_injected_as_steering_text():
     second_user_msg = client.beta.messages.calls[1]["messages"][-1]
     texts = [b for b in second_user_msg["content"] if b.get("type") == "text"]
     assert any("also do this" in b["text"] for b in texts)
+
+
+async def test_thinking_blocks_preserved_in_history():
+    # First response has a thinking block followed by a computer tool_use
+    r1 = _Resp(
+        content=[
+            _Block(type="thinking", thinking="reasoning...", signature="sig"),
+            _Block(type="tool_use", id="tu_1", name="computer",
+                   input={"action": "left_click", "coordinate": [5, 5]}),
+        ],
+        stop_reason="tool_use",
+    )
+    # Second response is a done response
+    r2 = _Resp([_Block(type="text", text="all done")], "end_turn")
+    client = FakeClient([r1, r2])
+    provider = AnthropicProvider(client=client, display_size=(1280, 800))
+    h = History()
+    h.add_user("do something")
+
+    await provider.next_actions("img1", h)
+    await provider.next_actions("img2", h)
+
+    # The second call's messages must include the prior assistant turn
+    # with the thinking block preserved
+    second_call_messages = client.beta.messages.calls[1]["messages"]
+    # Find the assistant turn that was appended after the first response
+    assistant_turns = [m for m in second_call_messages if m["role"] == "assistant"]
+    assert assistant_turns, "No assistant turn found in second call messages"
+    assistant_content = assistant_turns[-1]["content"]
+    thinking_dicts = [b for b in assistant_content if b.get("type") == "thinking"]
+    assert thinking_dicts, "thinking block was dropped from assistant turn"
+    assert thinking_dicts[0] == {"type": "thinking", "thinking": "reasoning...", "signature": "sig"}
+
+
+async def test_pending_id_reset_when_done():
+    r1 = _Resp(
+        content=[
+            _Block(type="tool_use", id="tu_1", name="computer",
+                   input={"action": "left_click", "coordinate": [1, 1]}),
+        ],
+        stop_reason="tool_use",
+    )
+    r2 = _Resp([_Block(type="text", text="finished")], "end_turn")
+    client = FakeClient([r1, r2])
+    provider = AnthropicProvider(client=client, display_size=(1280, 800))
+    h = History()
+    h.add_user("task")
+
+    await provider.next_actions("img1", h)
+    assert provider._pending_tool_use_id == "tu_1"
+
+    await provider.next_actions("img2", h)
+    assert provider._pending_tool_use_id is None
