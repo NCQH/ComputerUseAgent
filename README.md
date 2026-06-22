@@ -94,9 +94,13 @@ python -m pytest -q          # 118 passed, fully offline
 
 ## Run the app
 
-Set the API key for your chosen provider, then launch:
+Provide the API key for your chosen provider. Either export it, or copy
+`.env.example` to `.env` and fill it in (`.env` is gitignored; real environment
+variables take priority over it):
 
 ```bash
+cp .env.example .env && $EDITOR .env     # ANTHROPIC_API_KEY / OPENAI_API_KEY
+# or just:
 export ANTHROPIC_API_KEY=sk-ant-...      # or OPENAI_API_KEY=sk-...
 
 # CLI against the desktop sandbox (default ui=cli, executor=desktop, provider=claude)

@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 
 from cua.app import build_session
+from cua.env import load_dotenv
 from cua.ui.confirm import auto_approve
 
 
@@ -18,6 +19,9 @@ def parse_args(argv=None) -> argparse.Namespace:
 
 
 def main(argv=None) -> None:
+    # Load .env (if present) so ANTHROPIC_API_KEY / OPENAI_API_KEY are available
+    # to the lazily-constructed provider SDK clients. Real env vars take priority.
+    load_dotenv()
     args = parse_args(argv)
     display_size = (args.width, args.height)
 
