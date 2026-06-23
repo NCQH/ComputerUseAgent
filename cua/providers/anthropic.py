@@ -1,6 +1,8 @@
 """AnthropicProvider — drives Claude computer use to produce neutral actions."""
 from __future__ import annotations
 
+import asyncio
+
 from cua.core.history import History, UserEntry
 from cua.models import ProviderResponse
 from cua.providers.anthropic_translate import COMPUTER_TOOL, claude_action_to_neutral
@@ -75,14 +77,18 @@ class AnthropicProvider:
             self._messages.append({"role": "user", "content": content})
 
         w, h = self.display_size
-        resp = self.client.beta.messages.create(
-            model=self.model,
-            max_tokens=4096,
-            thinking={"type": "adaptive"},
-            tools=[COMPUTER_TOOL(w, h)],
-            betas=[BETA],
-            system=self.system,
-            messages=list(self._messages),
+        # Off the event loop: the SDK call is synchronous and can stall on a slow
+        # network; running it inline would freeze the UI and block Stop/Ctrl-C.
+        resp = await asyncio.to_thread(
+            lambda: self.client.beta.messages.create(
+                model=self.model,
+                max_tokens=4096,
+                thinking={"type": "adaptive"},
+                tools=[COMPUTER_TOOL(w, h)],
+                betas=[BETA],
+                system=self.system,
+                messages=list(self._messages),
+            )
         )
 
         self._messages.append({"role": "assistant", "content": _blocks_to_dicts(resp.content)})

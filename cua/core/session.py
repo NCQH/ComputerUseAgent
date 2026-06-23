@@ -47,19 +47,29 @@ class AgentSession:
         self.max_steps = max_steps
         self.history = History()
         self.state = SessionState.IDLE
+        self._stop = False
 
     async def submit(self, text: str) -> None:
         await self.queue.submit(text)
+
+    def request_stop(self) -> None:
+        """Ask the run loop to stop after the current action (graceful). For an
+        immediate stop even mid-API-call, the runner also cancels the task."""
+        self._stop = True
 
     def _set_state(self, state: SessionState) -> None:
         self.state = state
         self.bus.publish(StateChanged(state=state.value))
 
     async def run(self) -> None:
+        self._stop = False
         self._set_state(SessionState.RUNNING)
         steps = 0
         try:
             while steps < self.max_steps:
+                if self._stop:
+                    self.bus.publish(LogMessage(text="Stopped by user."))
+                    break
                 for text in self.queue.drain():
                     self.history.add_user(text)
                     self.bus.publish(LogMessage(text=f"New request: {text}"))
@@ -92,6 +102,8 @@ class AgentSession:
                     break
 
                 for action in resp.actions:
+                    if self._stop:
+                        break
                     needs, reason = self.gate.needs_confirmation(
                         action, resp.assistant_text, resp.model_flagged_risky
                     )
@@ -111,4 +123,5 @@ class AgentSession:
 
                 steps += 1
         finally:
+            self._stop = False
             self._set_state(SessionState.IDLE)

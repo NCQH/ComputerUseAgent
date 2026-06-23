@@ -20,15 +20,32 @@ async def run_cli(session, runner=None) -> None:
     session.bus.subscribe(on_event)
 
     pt = PromptSession()
-    print("CUA CLI — gõ yêu cầu rồi Enter. Ctrl-D để thoát.")
+    print("CUA CLI — gõ yêu cầu rồi Enter.")
+    print("  • Ctrl-C: dừng tác vụ đang chạy (Ctrl-C khi rảnh hoặc Ctrl-D để thoát)")
+    print("  • /stop : cũng dừng tác vụ đang chạy")
     with patch_stdout():
         while True:
             try:
                 text = await pt.prompt_async("> ")
-            except (EOFError, KeyboardInterrupt):
+            except KeyboardInterrupt:
+                # Ctrl-C stops a running task; when idle it exits.
+                if runner.is_running:
+                    print("⏹  Đang dừng…")
+                    await runner.stop()
+                    continue
+                break
+            except EOFError:
                 break
             text = text.strip()
             if not text:
                 continue
+            if text.lower() in ("/stop", "/dung", "/dừng"):
+                if runner.is_running:
+                    print("⏹  Đang dừng…")
+                    await runner.stop()
+                else:
+                    print("(không có tác vụ nào đang chạy)")
+                continue
             await runner.submit(text)
+    await runner.stop()
     await runner.aclose()

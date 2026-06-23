@@ -18,7 +18,24 @@ class SessionRunner:
         if not self.is_running:
             self._task = asyncio.create_task(self.session.run())
 
+    async def stop(self) -> None:
+        """Stop a running session. Sets the graceful flag, then hard-cancels the
+        task so a stop takes effect even while a blocking API call is mid-flight
+        (which is what makes the UI appear frozen)."""
+        self.session.request_stop()
+        task = self._task
+        if task is not None and not task.done():
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+        self._task = None
+
     async def aclose(self) -> None:
         if self._task is not None:
-            await self._task
+            try:
+                await self._task
+            except asyncio.CancelledError:
+                pass
             self._task = None

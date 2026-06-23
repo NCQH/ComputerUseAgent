@@ -2,6 +2,7 @@
 """GenericVisionProvider: drive any vision+chat model as a computer-use agent."""
 from __future__ import annotations
 
+import asyncio
 import json
 
 from cua.core.history import ActionEntry, ErrorEntry, History, UserEntry
@@ -109,8 +110,12 @@ class GenericVisionProvider:
             return ProviderResponse([], done=False, assistant_text=f"screenshot error: {exc}",
                                     model_flagged_risky=False)
         try:
-            content = self._call(annotated_b64, self._summarize_history(history),
-                                  _targeting_hint(marks, grid))
+            # The OpenAI SDK call is synchronous and can take seconds (or stall on
+            # a slow network). Run it off the event loop so the UI stays responsive
+            # and a user Stop / Ctrl-C is processed instead of appearing frozen.
+            content = await asyncio.to_thread(
+                self._call, annotated_b64, self._summarize_history(history),
+                _targeting_hint(marks, grid))
             obj = json.loads(content)
         except Exception as exc:  # noqa: BLE001 — surfaced, never raised
             return ProviderResponse([], done=False, assistant_text=f"parse error: {exc}",

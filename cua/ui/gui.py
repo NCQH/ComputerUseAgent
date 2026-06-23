@@ -29,14 +29,23 @@ def run_gui(session, build_confirm_handler=None) -> None:
     row = QHBoxLayout()
     box = QLineEdit()
     send = QPushButton("Gửi")
+    stop = QPushButton("⏹ Dừng")
+    stop.setEnabled(False)
     row.addWidget(box)
     row.addWidget(send)
+    row.addWidget(stop)
     layout.addLayout(row)
+
+    from cua.core.events import StateChanged
 
     def on_event(event) -> None:
         line = format_event(event)
         if line is not None:
             log.append(line)
+        # Enable Stop only while a task is actually running.
+        if isinstance(event, StateChanged):
+            running = event.state == "RUNNING"
+            stop.setEnabled(running)
 
     session.bus.subscribe(on_event)
 
@@ -60,8 +69,13 @@ def run_gui(session, build_confirm_handler=None) -> None:
             box.clear()
             asyncio.ensure_future(runner.submit(text))
 
+    def stop_run() -> None:
+        log.append("⏹  Đang dừng…")
+        asyncio.ensure_future(runner.stop())
+
     send.clicked.connect(submit_text)
     box.returnPressed.connect(submit_text)
+    stop.clicked.connect(stop_run)
 
     window.resize(900, 600)
     window.show()

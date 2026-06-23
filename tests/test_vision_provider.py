@@ -136,6 +136,38 @@ async def test_targeting_hint_tells_model_when_marks_absent():
     assert "grid available" in sent
 
 
+async def test_blocking_api_call_does_not_freeze_event_loop():
+    """The synchronous SDK call must run off the loop (to_thread); otherwise a
+    slow API stalls the whole UI. Verify another coroutine makes progress while
+    the provider's blocking create() sleeps."""
+    import asyncio
+    import time
+
+    class SlowCompletions:
+        def create(self, **kwargs):
+            time.sleep(0.3)  # blocking, like a real network call
+            return FakeCompletion(json.dumps({"action": "none", "done": True}))
+
+    class SlowClient:
+        def __init__(self):
+            self.chat = type("C", (), {"completions": SlowCompletions()})()
+
+    provider = GenericVisionProvider(SlowClient(), ocr=_fake_ocr, use_grid=False, zoom=False)
+
+    ticks = 0
+    async def heartbeat():
+        nonlocal ticks
+        for _ in range(20):
+            await asyncio.sleep(0.01)
+            ticks += 1
+
+    hb = asyncio.create_task(heartbeat())
+    await provider.next_actions(_screenshot_b64(), History())
+    await hb
+    # if the loop had been blocked for the full 0.3s, ticks would be ~0
+    assert ticks >= 10
+
+
 async def test_corrupt_screenshot_does_not_raise():
     reply = json.dumps({"action": "none", "done": False, "reasoning": "ok"})
     client = FakeClient(reply)

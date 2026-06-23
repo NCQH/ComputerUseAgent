@@ -10,6 +10,8 @@ class OneShotSession:
         self.runs = 0
     async def submit(self, text):
         self.submitted.append(text)
+    def request_stop(self):
+        pass
     async def run(self):
         self.runs += 1
 
@@ -20,8 +22,11 @@ class BlockingSession:
         self.release = release
         self.submitted = []
         self.runs = 0
+        self.stop_requested = False
     async def submit(self, text):
         self.submitted.append(text)
+    def request_stop(self):
+        self.stop_requested = True
     async def run(self):
         self.runs += 1
         await self.release.wait()
@@ -60,3 +65,24 @@ async def test_submit_while_running_does_not_start_second_run():
     release.set()
     await r.aclose()
     assert s.runs == 1
+
+
+async def test_stop_cancels_a_running_session():
+    # The session blocks forever (release is never set), simulating a long/stuck
+    # step. stop() must request a graceful stop AND hard-cancel so it returns.
+    release = asyncio.Event()
+    s = BlockingSession(release)
+    r = SessionRunner(s)
+    await r.submit("go")
+    await asyncio.sleep(0)
+    assert r.is_running is True
+    await r.stop()                 # never sets release — only a cancel can end it
+    assert s.stop_requested is True
+    assert r.is_running is False
+
+
+async def test_stop_when_idle_is_noop():
+    s = OneShotSession()
+    r = SessionRunner(s)
+    await r.stop()                 # nothing running → must not raise
+    assert r.is_running is False

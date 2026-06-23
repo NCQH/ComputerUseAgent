@@ -1,6 +1,8 @@
 """OpenAIProvider — drives OpenAI computer-use-preview to produce neutral actions."""
 from __future__ import annotations
 
+import asyncio
+
 from cua.core.history import History, UserEntry
 from cua.models import ProviderResponse
 from cua.providers.openai_translate import openai_action_to_neutral
@@ -63,12 +65,16 @@ class OpenAIProvider:
             if new_text:
                 input_items.append({"role": "user", "content": [{"type": "input_text", "text": new_text}]})
 
-        resp = self.client.responses.create(
-            model=self.model,
-            tools=[self._tool()],
-            truncation="auto",
-            input=input_items,
-            previous_response_id=self._previous_response_id,
+        # Off the event loop: the SDK call is synchronous and can stall on a slow
+        # network; running it inline would freeze the UI and block Stop/Ctrl-C.
+        resp = await asyncio.to_thread(
+            lambda: self.client.responses.create(
+                model=self.model,
+                tools=[self._tool()],
+                truncation="auto",
+                input=input_items,
+                previous_response_id=self._previous_response_id,
+            )
         )
         self._previous_response_id = resp.id
 

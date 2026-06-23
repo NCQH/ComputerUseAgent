@@ -142,6 +142,34 @@ async def test_assistant_text_is_surfaced_to_bus():
     assert any("all done" in t for t in logs)
 
 
+async def test_request_stop_halts_remaining_actions():
+    """If the user stops mid-step, queued actions after the stop must not run."""
+    provider = FakeProvider([
+        ProviderResponse([Click(1, 1), Click(2, 2), Click(3, 3)], done=False,
+                         assistant_text="three clicks", model_flagged_risky=False),
+        ProviderResponse([], done=True, assistant_text="done", model_flagged_risky=False),
+    ])
+
+    # an executor that asks the session to stop right after the first action
+    class StopAfterFirst(FakeExecutor):
+        def __init__(self, session_ref):
+            super().__init__()
+            self._session_ref = session_ref
+        async def do(self, action):
+            result = await super().do(action)
+            self._session_ref[0].request_stop()
+            return result
+
+    ref = [None]
+    executor = StopAfterFirst(ref)
+    session = _session(provider, executor)
+    ref[0] = session
+    await session.submit("go")
+    await session.run()
+    assert executor.performed == [Click(1, 1)]   # 2nd and 3rd never ran
+    assert session.state is SessionState.IDLE
+
+
 async def test_screenshot_failure_is_surfaced_and_state_resets():
     """I-2: executor.screenshot() failure must publish ErrorOccurred and reset state to IDLE."""
 
