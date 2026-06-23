@@ -1,7 +1,7 @@
 # tests/test_session.py
 from cua.core.session import AgentSession, SessionState
 from cua.core.queue import InputQueue
-from cua.core.events import EventBus, StepCompleted, ConfirmRequested, ErrorOccurred
+from cua.core.events import EventBus, StepCompleted, ConfirmRequested, ErrorOccurred, LogMessage
 from cua.core.history import History, UserEntry, ErrorEntry
 from cua.core.safety import IrreversibilityGate
 from cua.models import Click, Type, ProviderResponse, ConfirmRequest
@@ -120,6 +120,26 @@ async def test_max_steps_stops_runaway_loop():
     await session.run()
     assert len(executor.performed) == 3
     assert session.state is SessionState.IDLE
+
+
+async def test_assistant_text_is_surfaced_to_bus():
+    """Without this, a provider that returns no actions (error string or 'done'
+    reasoning in assistant_text) leaves the user staring at a silent IDLE."""
+    provider = FakeProvider([
+        ProviderResponse([], done=False, assistant_text="parse error: 400 bad schema",
+                         model_flagged_risky=False),
+        ProviderResponse([], done=True, assistant_text="all done", model_flagged_risky=False),
+    ])
+    executor = FakeExecutor()
+    logs = []
+    bus = EventBus()
+    bus.subscribe(lambda e: logs.append(e.text) if isinstance(e, LogMessage) else None)
+    session = _session(provider, executor, bus=bus)
+    await session.submit("go")
+    await session.run()
+    # the model's reasoning / error string must reach the user
+    assert any("parse error: 400 bad schema" in t for t in logs)
+    assert any("all done" in t for t in logs)
 
 
 async def test_screenshot_failure_is_surfaced_and_state_resets():

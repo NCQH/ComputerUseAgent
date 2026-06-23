@@ -82,6 +82,12 @@ class AgentSession:
 
                 self.history.add_assistant(resp.assistant_text)
 
+                # Surface the model's reasoning / error string. Without this a
+                # provider that returns no actions (a parse/screenshot error, or
+                # a plain "done") leaves the UI on a silent IDLE with no clue why.
+                if resp.assistant_text:
+                    self.bus.publish(LogMessage(text=f"[model] {resp.assistant_text}"))
+
                 if resp.done and self.queue.is_empty():
                     break
 
