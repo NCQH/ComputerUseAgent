@@ -122,6 +122,128 @@ async def test_max_steps_stops_runaway_loop():
     assert session.state is SessionState.IDLE
 
 
+async def test_max_runtime_seconds_stops_loop_by_wall_clock():
+    """A wall-clock budget halts a model that keeps emitting actions, even when
+    max_steps is large."""
+    forever = [
+        ProviderResponse([Click(1, 1)], done=False, assistant_text="x", model_flagged_risky=False)
+        for _ in range(100)
+    ]
+    provider = FakeProvider(forever)
+    executor = FakeExecutor()
+
+    class Clock:
+        def __init__(self): self.t = 0
+        def __call__(self):
+            v = self.t
+            self.t += 1
+            return v
+
+    logs = []
+    bus = EventBus()
+    bus.subscribe(lambda e: logs.append(e.text) if isinstance(e, LogMessage) else None)
+    session = AgentSession(
+        provider=provider, executor=executor, gate=IrreversibilityGate(), bus=bus,
+        queue=InputQueue(), confirm_handler=lambda r: _true(), max_steps=100,
+        max_runtime_seconds=2, clock=Clock(),
+    )
+    await session.submit("go")
+    await session.run()
+    assert len(executor.performed) < 100         # stopped well before max_steps
+    assert session.state is SessionState.IDLE
+    assert any("time" in t.lower() for t in logs)
+
+
+async def test_repeated_identical_action_stops_stuck_loop():
+    """If the model repeats the exact same action N times, the run stops instead
+    of spinning forever."""
+    forever = [
+        ProviderResponse([Click(7, 7)], done=False, assistant_text="x", model_flagged_risky=False)
+        for _ in range(100)
+    ]
+    provider = FakeProvider(forever)
+    executor = FakeExecutor()
+    logs = []
+    bus = EventBus()
+    bus.subscribe(lambda e: logs.append(e.text) if isinstance(e, LogMessage) else None)
+    session = AgentSession(
+        provider=provider, executor=executor, gate=IrreversibilityGate(), bus=bus,
+        queue=InputQueue(), confirm_handler=lambda r: _true(), max_steps=100,
+        max_repeated_actions=3,
+    )
+    await session.submit("go")
+    await session.run()
+    assert executor.performed == [Click(7, 7), Click(7, 7), Click(7, 7)]
+    assert session.state is SessionState.IDLE
+    assert any("repeat" in t.lower() for t in logs)
+
+
+async def _true():
+    return True
+
+
+async def test_provider_call_retries_transient_failures():
+    """A couple of transient provider errors are retried with backoff and recover
+    without surfacing an error to the user."""
+    class FlakyProvider:
+        display_size = (1280, 800)
+        def __init__(self): self.calls = 0
+        async def next_actions(self, screenshot_b64, history):
+            self.calls += 1
+            if self.calls <= 2:
+                raise RuntimeError("transient 503")
+            return ProviderResponse([], done=True, assistant_text="ok", model_flagged_risky=False)
+
+    provider = FlakyProvider()
+    executor = FakeExecutor()
+    errors = []
+    bus = EventBus()
+    bus.subscribe(lambda e: errors.append(e) if isinstance(e, ErrorOccurred) else None)
+    slept = []
+
+    async def fake_sleep(s): slept.append(s)
+
+    session = AgentSession(
+        provider=provider, executor=executor, gate=IrreversibilityGate(), bus=bus,
+        queue=InputQueue(), confirm_handler=lambda r: _true(),
+        provider_retries=3, sleep=fake_sleep,
+    )
+    await session.submit("go")
+    await session.run()
+    assert provider.calls == 3       # 2 failures + 1 success
+    assert errors == []              # retry recovered; nothing surfaced
+    assert len(slept) == 2           # backed off after each failure
+    assert session.state is SessionState.IDLE
+
+
+async def test_provider_retries_exhausted_surfaces_error():
+    class AlwaysFails:
+        display_size = (1280, 800)
+        def __init__(self): self.calls = 0
+        async def next_actions(self, screenshot_b64, history):
+            self.calls += 1
+            raise RuntimeError("api down")
+
+    provider = AlwaysFails()
+    executor = FakeExecutor()
+    errors = []
+    bus = EventBus()
+    bus.subscribe(lambda e: errors.append(e) if isinstance(e, ErrorOccurred) else None)
+
+    async def fake_sleep(s): ...
+
+    session = AgentSession(
+        provider=provider, executor=executor, gate=IrreversibilityGate(), bus=bus,
+        queue=InputQueue(), confirm_handler=lambda r: _true(),
+        provider_retries=2, sleep=fake_sleep,
+    )
+    await session.submit("go")
+    await session.run()
+    assert provider.calls == 3       # 1 + 2 retries, all failed
+    assert len(errors) == 1          # then surfaced
+    assert session.state is SessionState.IDLE
+
+
 async def test_assistant_text_is_surfaced_to_bus():
     """Without this, a provider that returns no actions (error string or 'done'
     reasoning in assistant_text) leaves the user staring at a silent IDLE."""

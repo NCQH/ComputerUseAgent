@@ -7,6 +7,8 @@ from cua.core.history import History, UserEntry
 from cua.models import ProviderResponse
 from cua.providers.anthropic_translate import COMPUTER_TOOL, claude_action_to_neutral
 
+IMAGE_PLACEHOLDER_TEXT = "[older screenshot omitted to save context]"
+
 DEFAULT_SYSTEM = (
     "You are operating a computer to accomplish the user's tasks. "
     "Before any irreversible action (submitting forms, deleting, purchasing, sending), "
@@ -20,6 +22,27 @@ def _image_block(screenshot_b64: str) -> dict:
         "type": "image",
         "source": {"type": "base64", "media_type": "image/png", "data": screenshot_b64},
     }
+
+
+def _strip_images(msg: dict) -> dict:
+    """Return a copy of a user message with image blocks swapped for a text
+    placeholder, including images nested inside tool_result content."""
+    placeholder = {"type": "text", "text": IMAGE_PLACEHOLDER_TEXT}
+    new_content: list[dict] = []
+    for b in msg["content"]:
+        if b.get("type") == "image":
+            new_content.append(dict(placeholder))
+        elif b.get("type") == "tool_result":
+            inner = [dict(placeholder) if c.get("type") == "image" else c
+                     for c in b.get("content", [])]
+            new_block = dict(b)
+            new_block["content"] = inner
+            new_content.append(new_block)
+        else:
+            new_content.append(b)
+    new_msg = dict(msg)
+    new_msg["content"] = new_content
+    return new_msg
 
 
 def _blocks_to_dicts(content) -> list[dict]:
@@ -42,14 +65,31 @@ def _blocks_to_dicts(content) -> list[dict]:
 
 class AnthropicProvider:
     def __init__(self, client, model: str = "claude-opus-4-8",
-                 display_size: tuple[int, int] = (1280, 800), system: str = DEFAULT_SYSTEM) -> None:
+                 display_size: tuple[int, int] = (1280, 800), system: str = DEFAULT_SYSTEM,
+                 image_retention: int | None = 3) -> None:
         self.client = client
         self.model = model
         self.display_size = display_size
         self.system = system
+        # Old screenshots dominate token cost. Keep images only for the last
+        # `image_retention` user turns; older ones become a text placeholder so the
+        # context stops growing without breaking tool_use/tool_result pairing.
+        # None disables pruning.
+        self.image_retention = image_retention
         self._messages: list[dict] = []
         self._seen_user_count = 0
         self._pending_tool_use_id: str | None = None
+
+    def _prune_old_images(self) -> None:
+        """Replace image blocks in all but the most recent `image_retention` user
+        turns with a text placeholder. Pairing (tool_use_id) is preserved."""
+        if self.image_retention is None:
+            return
+        user_idxs = [i for i, m in enumerate(self._messages) if m["role"] == "user"]
+        keep = set(user_idxs[-self.image_retention:])
+        for i in user_idxs:
+            if i not in keep:
+                self._messages[i] = _strip_images(self._messages[i])
 
     def _drain_user_text(self, history: History) -> str:
         users = [e.text for e in history.entries() if isinstance(e, UserEntry)]
@@ -75,6 +115,8 @@ class AnthropicProvider:
             if new_text:
                 content.append({"type": "text", "text": f"Additional request: {new_text}"})
             self._messages.append({"role": "user", "content": content})
+
+        self._prune_old_images()
 
         w, h = self.display_size
         # Off the event loop: the SDK call is synchronous and can stall on a slow

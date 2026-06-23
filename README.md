@@ -4,9 +4,10 @@ A Computer-Use Agent: it takes natural-language requests, drives a computer or a
 browser to carry them out, lets you **inject new instructions in real time while
 it works**, and **stops to ask before any irreversible action**.
 
-It is provider-agnostic (Claude or OpenAI computer-use) and has two execution
-backends — a **web** workflow (Playwright) and a **desktop** workflow (pyautogui
-inside a Docker + VNC sandbox) — behind one clean interface.
+It is provider-agnostic (Claude computer-use, OpenAI computer-use, or any vision
+chat model via Set-of-Marks) and has two execution backends — a **web** workflow
+(Playwright) and a **local** workflow (pyautogui on the real host desktop) — behind
+one clean interface.
 
 ## Highlights
 
@@ -15,14 +16,17 @@ inside a Docker + VNC sandbox) — behind one clean interface.
 - **Two-layer safety gate.** A hard denylist *plus* the model's own risk flag force
   a confirmation prompt before irreversible actions. Default-deny: anything that
   isn't an explicit "yes" is rejected.
-- **Multi-provider brain.** Claude (`computer_20250124`) and OpenAI
-  (`computer_use_preview`) behind one `CUAProvider` interface — pick with a flag.
-- **Two execution backends.** Web (Playwright) and Desktop (Docker + VNC sandbox)
-  behind one `Executor` interface.
+- **Multi-provider brain.** Claude (`computer_20250124`), OpenAI
+  (`computer_use_preview`), a **generic vision** provider (OCR/grid Set-of-Marks
+  on any vision chat model), and a **DOM browser** provider that reads the page's
+  interactive elements straight from the DOM and lets the model pick by index
+  (the browser_use technique) — behind one `CUAProvider` interface, pick with a flag.
+- **Two execution backends.** Web (Playwright) and Local (real host desktop via
+  pyautogui) behind one `Executor` interface.
 - **Two frontends, one core.** A CLI (prompt_toolkit) and a desktop GUI
   (PySide6) share the same `AgentSession`.
-- **Offline-testable.** 118 tests run with no API key, browser, Docker, or GUI
-  toolkit installed — every backend is injected and the pure logic is isolated.
+- **Offline-testable.** 181 tests run with no API key, browser, or GUI toolkit
+  installed — every backend is injected and the pure logic is isolated.
 
 ## Architecture
 
@@ -37,11 +41,13 @@ cua/
 ├── providers/    The "brain": screenshot + history -> neutral actions
 │   ├── base.py       CUAProvider interface
 │   ├── anthropic.py  Claude computer use      (+ anthropic_translate.py)
-│   └── openai.py     OpenAI computer use       (+ openai_translate.py)
+│   ├── openai.py     OpenAI computer use       (+ openai_translate.py)
+│   ├── vision/       GenericVisionProvider — OCR/grid Set-of-Marks, any vision model
+│   └── browser/      DomVisionProvider — DOM Set-of-Marks (browser_use-style)
 ├── executors/    The "hands": perform a neutral action, return a screenshot
-│   ├── base.py       Executor interface
-│   ├── web.py        Playwright                (+ web_translate.py)
-│   └── desktop.py    Docker+VNC sandbox        (+ desktop_translate.py)
+│   ├── base.py          Executor interface
+│   ├── web.py           Playwright            (+ web_translate.py, web_launch.py)
+│   └── local.py         Real host desktop via pyautogui (+ action_payload.py)
 ├── ui/           Frontends
 │   ├── format.py     Pure event -> log line
 │   ├── confirm.py    Confirmation handlers (default-deny)
@@ -51,7 +57,6 @@ cua/
 ├── app.py        build_session — wires provider+executor+gate+bus+queue
 ├── config.py     build_provider / build_executor factories (lazy SDKs)
 └── __main__.py   Entrypoint: python -m cua --ui ... --provider ... --executor ...
-docker/desktop/   Sandbox image: Xvfb + x11vnc + pyautogui HTTP agent
 ```
 
 **Neutral action vocabulary** (`cua/models.py`) is the contract between brain and
@@ -65,7 +70,7 @@ each executor translates it to the backend API. Swap either side independently.
 - Optional, per backend/frontend (installed via extras below):
   - `anthropic` and/or `openai` — the model provider SDK
   - `playwright` — web executor
-  - Docker — desktop executor sandbox
+  - `pyautogui`, `Pillow` — local (real host desktop) executor
   - `prompt_toolkit`, `PySide6`, `qasync` — UIs
 
 ## Install
@@ -82,14 +87,15 @@ pip install -e .
 pip install -e ".[test]"      # pytest + pytest-asyncio
 pip install -e ".[ui]"        # prompt_toolkit + PySide6 + qasync
 pip install -e ".[web]"       # playwright   (then: playwright install chromium)
-pip install -e ".[desktop]"   # httpx (HTTP client for the sandbox)
+pip install -e ".[local]"     # pyautogui + Pillow (real host desktop)
+pip install -e ".[vision]"    # generic vision provider (openai + Pillow + pytesseract)
 pip install anthropic openai  # provider SDKs (choose what you use)
 ```
 
 ## Run the tests
 
 ```bash
-python -m pytest -q          # 118 passed, fully offline
+python -m pytest -q          # 181 passed, 2 skipped (live), fully offline
 ```
 
 ## Run the app
@@ -103,22 +109,25 @@ cp .env.example .env && $EDITOR .env     # ANTHROPIC_API_KEY / OPENAI_API_KEY
 # or just:
 export ANTHROPIC_API_KEY=sk-ant-...      # or OPENAI_API_KEY=sk-...
 
-# CLI against the desktop sandbox (default ui=cli, executor=desktop, provider=claude)
+# CLI on the real host desktop (default ui=cli, executor=local, provider=claude)
 python -m cua
 
-# GUI against the desktop sandbox, with OpenAI
-python -m cua --ui gui --provider openai --executor desktop
+# DOM Set-of-Marks (browser_use-style) driving a headless browser
+python -m cua --provider browser --executor web
 
-# custom virtual display size
-python -m cua --executor desktop --width 1280 --height 800
+# generic vision model, show the browser window, cap a runaway run
+python -m cua --provider generic --executor web --headed --max-runtime 120
 ```
 
-Flags: `--ui {cli,gui}` · `--provider {claude,openai}` · `--executor {web,desktop}`
-· `--width` · `--height`.
+Flags: `--ui {cli,gui}` · `--provider {claude,openai,generic,vision,browser,dom}` ·
+`--executor {web,local,host}` · `--width` · `--height` · `--headed` ·
+`--retries` · `--max-runtime` · `--max-repeated`.
 
-> The **desktop** executor needs the sandbox container running, and the **web**
-> executor needs a launched Playwright page wired in by the caller. See
-> [docs/RUNNING.md](docs/RUNNING.md) for the end-to-end smoke test.
+> `--provider browser` reads the DOM and so requires `--executor web`.
+
+> The **local** executor drives your real desktop — watch it, and keep a hand near
+> the corner-abort. `--executor web` self-launches a headless Chromium page. See
+> [docs/RUNNING.md](docs/RUNNING.md) for the end-to-end guide.
 
 ## How steering and safety work
 

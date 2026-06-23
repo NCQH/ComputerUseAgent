@@ -126,6 +126,63 @@ async def test_thinking_blocks_preserved_in_history():
     assert thinking_dicts[0] == {"type": "thinking", "thinking": "reasoning...", "signature": "sig"}
 
 
+def _user_has_image(msg) -> bool:
+    for b in msg["content"]:
+        if b.get("type") == "image":
+            return True
+        if b.get("type") == "tool_result":
+            if any(c.get("type") == "image" for c in b.get("content", [])):
+                return True
+    return False
+
+
+async def test_old_screenshots_pruned_to_cap_context_growth():
+    """Old screenshots dominate token cost. With image_retention=1 only the most
+    recent user turn keeps its image; older ones become a text placeholder, while
+    the tool_use/tool_result pairing stays intact."""
+    r1 = _Resp([_Block(type="tool_use", id="tu_1", name="computer",
+                       input={"action": "left_click", "coordinate": [1, 1]})], "tool_use")
+    r2 = _Resp([_Block(type="tool_use", id="tu_2", name="computer",
+                       input={"action": "left_click", "coordinate": [2, 2]})], "tool_use")
+    r3 = _Resp([_Block(type="text", text="done")], "end_turn")
+    client = FakeClient([r1, r2, r3])
+    provider = AnthropicProvider(client=client, display_size=(1280, 800), image_retention=1)
+    h = History()
+    h.add_user("go")
+    await provider.next_actions("img1", h)
+    await provider.next_actions("img2", h)
+    await provider.next_actions("img3", h)
+
+    msgs = client.beta.messages.calls[2]["messages"]
+    user_msgs = [m for m in msgs if m["role"] == "user"]
+    assert _user_has_image(user_msgs[-1]) is True          # newest keeps its image
+    assert all(not _user_has_image(m) for m in user_msgs[:-1])  # older pruned
+    # the tool_result structure (id pairing) survives pruning
+    pruned_tool_results = [
+        b for b in user_msgs[1]["content"] if b.get("type") == "tool_result"
+    ]
+    assert pruned_tool_results and pruned_tool_results[0]["tool_use_id"] == "tu_1"
+    # a placeholder marks where an image was dropped
+    assert any(b.get("type") == "text" and "omitted" in b.get("text", "")
+               for b in user_msgs[0]["content"])
+
+
+async def test_image_retention_defaults_keep_recent_images():
+    """Default retention must not strip images within a short run (regression guard
+    for the existing two-step tests)."""
+    r1 = _Resp([_Block(type="tool_use", id="tu_1", name="computer",
+                       input={"action": "left_click", "coordinate": [1, 1]})], "tool_use")
+    r2 = _Resp([_Block(type="text", text="done")], "end_turn")
+    client = FakeClient([r1, r2])
+    provider = AnthropicProvider(client=client, display_size=(1280, 800))
+    h = History()
+    h.add_user("go")
+    await provider.next_actions("img1", h)
+    await provider.next_actions("img2", h)
+    user_msgs = [m for m in client.beta.messages.calls[1]["messages"] if m["role"] == "user"]
+    assert all(_user_has_image(m) for m in user_msgs)
+
+
 async def test_pending_id_reset_when_done():
     r1 = _Resp(
         content=[

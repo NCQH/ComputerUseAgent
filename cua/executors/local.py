@@ -1,15 +1,13 @@
 """LocalExecutor: drives the REAL host desktop via pyautogui, in-process.
 
-This is the host twin of DesktopExecutor + docker/desktop/agent.py: the same
-neutral Actions, but the "hands" act on the machine you are sitting at instead of
-an isolated container. There is NO sandbox here — the IrreversibilityGate in the
-session is the only guard, so destructive actions are still gated for confirmation
-but ordinary clicks/typing land on your real screen.
+The "hands" act on the machine you are sitting at. There is NO sandbox here — the
+IrreversibilityGate in the session is the only guard, so destructive actions are
+still gated for confirmation but ordinary clicks/typing land on your real screen.
 
 `apply_payload` is a pure dispatch (takes an injected pyautogui-like `gui`) so it
-is unit-tested on any host without pyautogui. It mirrors agent.perform; the two
-must stay in sync. pyautogui/Pillow are imported lazily by _make_host_gui(), only
-when a real executor is constructed, so the test suite runs without them.
+is unit-tested on any host without pyautogui. pyautogui/Pillow are imported lazily
+by _make_host_gui(), only when a real executor is constructed, so the test suite
+runs without them.
 """
 from __future__ import annotations
 
@@ -17,7 +15,7 @@ import asyncio
 import base64
 import time
 
-from cua.executors.desktop_translate import action_to_payload
+from cua.executors.action_payload import action_to_payload
 from cua.models import Action, StepResult
 
 
@@ -68,13 +66,17 @@ def apply_payload(payload: dict, gui) -> dict:
 
 
 class LocalExecutor:
-    def __init__(self, gui=None, display_size: tuple[int, int] = (1280, 800)) -> None:
+    def __init__(self, gui=None, display_size: tuple[int, int] = (1280, 800),
+                 failsafe: bool = True) -> None:
         self._gui = gui
         self.display_size = display_size
+        # On an unsandboxed real desktop the pyautogui corner-fling abort is the
+        # user's only physical kill switch, so it is ON by default.
+        self.failsafe = failsafe
 
     def _ensure_gui(self) -> None:
         if self._gui is None:
-            self._gui = _make_host_gui()
+            self._gui = _make_host_gui(failsafe=self.failsafe)
         # Adopt the real screen size; on the host that is the source of truth for
         # the coordinate space pyautogui acts in.
         try:
@@ -110,14 +112,17 @@ class LocalExecutor:
             return StepResult(success=False, error=str(exc))
 
 
-def _make_host_gui():
+def _make_host_gui(failsafe: bool = True):
     """Build a pyautogui-backed gui whose screenshot() returns PNG bytes."""
     import io
 
     import pyautogui  # lazy; real host dependency
 
-    # A fling into a screen corner should not abort the agent mid-task.
-    pyautogui.FAILSAFE = False
+    # FAILSAFE ON (default): flinging the mouse into a screen corner aborts the
+    # run — the emergency stop for an unsandboxed real-desktop agent. Callers can
+    # opt out (failsafe=False) for unattended runs where a stray corner-hit
+    # should not kill the task.
+    pyautogui.FAILSAFE = failsafe
 
     class _HostGui:
         def moveTo(self, x, y): pyautogui.moveTo(x, y)

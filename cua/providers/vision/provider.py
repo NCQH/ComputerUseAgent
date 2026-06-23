@@ -22,6 +22,20 @@ _SYSTEM = (
 )
 
 
+def summarize_history(history: History) -> str:
+    """Last few steps as compact text for the prompt. Shared with the DOM provider."""
+    lines = []
+    for entry in history.entries()[-3:]:
+        if isinstance(entry, UserEntry):
+            lines.append(f"user: {entry.text}")
+        elif isinstance(entry, ActionEntry):
+            ok = "ok" if entry.result.success else f"FAIL: {entry.result.error}"
+            lines.append(f"did {type(entry.action).__name__} -> {ok}")
+        elif isinstance(entry, ErrorEntry):
+            lines.append(f"error: {entry.message}")
+    return "\n".join(lines) if lines else "(no prior steps)"
+
+
 def _targeting_hint(marks: dict, grid: dict) -> str:
     """Describe exactly which targeting aids are present this step, so the model
     does not hallucinate mark ids when OCR/marks are unavailable."""
@@ -56,16 +70,7 @@ class GenericVisionProvider:
         self._ocr_unavailable = False
 
     def _summarize_history(self, history: History) -> str:
-        lines = []
-        for entry in history.entries()[-3:]:
-            if isinstance(entry, UserEntry):
-                lines.append(f"user: {entry.text}")
-            elif isinstance(entry, ActionEntry):
-                ok = "ok" if entry.result.success else f"FAIL: {entry.result.error}"
-                lines.append(f"did {type(entry.action).__name__} -> {ok}")
-            elif isinstance(entry, ErrorEntry):
-                lines.append(f"error: {entry.message}")
-        return "\n".join(lines) if lines else "(no prior steps)"
+        return summarize_history(history)
 
     def _annotate(self, screenshot_b64: str):
         img = _imaging.decode(screenshot_b64)

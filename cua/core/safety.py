@@ -1,6 +1,8 @@
 """Two-layer irreversibility gate: hard denylist + model risk flag."""
 from __future__ import annotations
 
+import re
+
 from cua.models import Action, Key, Type
 
 DEFAULT_DENYLIST: list[str] = [
@@ -18,6 +20,12 @@ DESTRUCTIVE_KEY_COMBOS: list[str] = [
 class IrreversibilityGate:
     def __init__(self, denylist: list[str] | None = None) -> None:
         self._denylist = [k.lower() for k in (denylist if denylist is not None else DEFAULT_DENYLIST)]
+        # Match on whole-word boundaries so 'confirm' does not fire on
+        # 'confirmations'. \b is Unicode-aware for str, so Vietnamese keywords
+        # ('xác nhận', 'thanh toán') match correctly too.
+        self._patterns = [
+            re.compile(r"\b" + re.escape(k) + r"\b", re.UNICODE) for k in self._denylist
+        ]
 
     def needs_confirmation(
         self, action: Action, description: str, model_flagged: bool
@@ -36,8 +44,8 @@ class IrreversibilityGate:
         if isinstance(action, Key):
             haystack += " " + action.combo.lower()
 
-        for keyword in self._denylist:
-            if keyword in haystack:
+        for keyword, pattern in zip(self._denylist, self._patterns):
+            if pattern.search(haystack):
                 return True, f"Khớp denylist: '{keyword}'"
 
         return False, ""

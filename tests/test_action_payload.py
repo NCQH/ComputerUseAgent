@@ -1,5 +1,5 @@
 import pytest
-from cua.executors.desktop_translate import action_to_payload
+from cua.executors.action_payload import action_to_payload
 from cua.models import (
     Click, DoubleClick, TripleClick, Move, Type, Key, Scroll, Drag, Wait, Screenshot,
 )

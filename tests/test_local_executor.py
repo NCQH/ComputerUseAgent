@@ -113,3 +113,23 @@ async def test_start_adopts_real_screen_size():
     ex = LocalExecutor(gui=FakeGui(), display_size=(800, 600))
     await ex.start()
     assert ex.display_size == (1920, 1080)  # from gui.size()
+
+
+def test_local_executor_failsafe_on_by_default():
+    """The corner-of-screen emergency abort is the only physical kill switch on an
+    unsandboxed real-desktop run, so it must default ON."""
+    assert LocalExecutor().failsafe is True
+    assert LocalExecutor(failsafe=False).failsafe is False
+
+
+def test_make_host_gui_sets_pyautogui_failsafe():
+    import pyautogui
+    from cua.executors.local import _make_host_gui
+
+    pyautogui.FAILSAFE = False  # force a known-wrong state first
+    _make_host_gui()             # default
+    assert pyautogui.FAILSAFE is True
+
+    _make_host_gui(failsafe=False)
+    assert pyautogui.FAILSAFE is False
+    pyautogui.FAILSAFE = True     # restore safe default for any later use

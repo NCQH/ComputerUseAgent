@@ -46,12 +46,38 @@ def test_build_session_rejects_bad_display_size():
                       provider_client=object(), page=object(), display_size=(0, 0))
 
 
-def test_build_session_desktop_uses_http_client():
-    from cua.executors.desktop import DesktopExecutor
+def test_build_session_local_openai_uses_host_environment():
+    from cua.config import environment_for_executor
+    from cua.providers.openai import OpenAIProvider
     session = build_session(
-        "openai", "desktop",
+        "openai", "local",
         confirm_handler=_confirm,
         provider_client=object(),
-        http_client=object(),
     )
-    assert isinstance(session.executor, DesktopExecutor)
+    assert isinstance(session.provider, OpenAIProvider)
+    assert session.provider.environment == environment_for_executor("local")
+
+
+def test_build_session_threads_runtime_guards():
+    session = build_session(
+        "claude", "web",
+        confirm_handler=_confirm,
+        provider_client=object(),
+        page=object(),
+        provider_retries=4,
+        max_runtime_seconds=90,
+        max_repeated_actions=6,
+    )
+    assert session.provider_retries == 4
+    assert session.max_runtime_seconds == 90
+    assert session.max_repeated_actions == 6
+
+
+def test_build_session_local_uses_local_executor():
+    from cua.executors.local import LocalExecutor
+    session = build_session(
+        "openai", "local",
+        confirm_handler=_confirm,
+        provider_client=object(),
+    )
+    assert isinstance(session.executor, LocalExecutor)

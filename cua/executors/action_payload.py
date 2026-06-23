@@ -1,4 +1,4 @@
-"""Pure translation: neutral Action -> container HTTP agent JSON payload."""
+"""Pure translation: neutral Action -> flat dict payload consumed by LocalExecutor."""
 from __future__ import annotations
 
 from cua.models import (
