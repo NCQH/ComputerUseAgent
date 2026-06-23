@@ -25,7 +25,8 @@ def build_provider(name: str, *, client=None, display_size: tuple[int, int] = (1
             import openai  # lazy
             client = openai.OpenAI()
         return GenericVisionProvider(client=client, display_size=display_size)
-    raise ValueError(f"Unknown provider: {name!r} (expected 'claude' or 'openai')")
+    raise ValueError(
+        f"Unknown provider: {name!r} (expected 'claude', 'openai', 'generic', or 'vision')")
 
 
 def build_executor(name, *, page=None, client=None, display_size=(1280, 800)):
