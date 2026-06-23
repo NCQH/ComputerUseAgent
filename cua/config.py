@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from cua.providers.anthropic import AnthropicProvider
 from cua.providers.openai import OpenAIProvider
+from cua.providers.vision.provider import GenericVisionProvider
 from cua.executors.web import WebExecutor
 from cua.executors.desktop import DesktopExecutor
 
@@ -19,7 +20,13 @@ def build_provider(name: str, *, client=None, display_size: tuple[int, int] = (1
             import openai
             client = openai.OpenAI()
         return OpenAIProvider(client=client, display_size=display_size)
-    raise ValueError(f"Unknown provider: {name!r} (expected 'claude' or 'openai')")
+    if key in ("generic", "vision"):
+        if client is None:
+            import openai  # lazy
+            client = openai.OpenAI()
+        return GenericVisionProvider(client=client, display_size=display_size)
+    raise ValueError(
+        f"Unknown provider: {name!r} (expected 'claude', 'openai', 'generic', or 'vision')")
 
 
 def build_executor(name, *, page=None, client=None, display_size=(1280, 800)):
