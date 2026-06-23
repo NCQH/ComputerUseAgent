@@ -59,3 +59,43 @@ def test_unknown_action_raises():
 def test_out_of_range_mark_raises():
     with pytest.raises(ValueError):
         _p({"action": "click", "target": {"type": "mark", "id": 99}})
+
+
+def _objects(schema):
+    """Yield every object-typed (sub)schema, recursing into properties."""
+    t = schema.get("type")
+    if t == "object" or (isinstance(t, list) and "object" in t):
+        yield schema
+        for sub in schema.get("properties", {}).values():
+            yield from _objects(sub)
+
+
+def test_schema_is_openai_strict_compliant():
+    """OpenAI strict mode requires every object's `required` to list EVERY key in
+    `properties` and `additionalProperties` to be False. The 400 we hit came from
+    `target` only requiring `type`."""
+    for obj in _objects(ACTION_SCHEMA):
+        assert obj.get("additionalProperties") is False
+        assert set(obj["required"]) == set(obj["properties"]), obj["properties"].keys()
+
+
+def test_parses_strict_shape_with_null_unused_fields():
+    """Strict mode returns ALL keys, nulling the unused ones; the parser must
+    treat null like absent and not crash or pass None into actions."""
+    click = _p({"reasoning": "go", "done": False, "action": "click",
+                "target": {"type": "point", "id": None, "cell": None, "x": 11, "y": 22},
+                "end_target": None, "text": None, "combo": None,
+                "direction": None, "amount": None, "ms": None})
+    assert click == Click(11, 22)
+
+    typ = _p({"reasoning": None, "done": False, "action": "type",
+              "target": None, "end_target": None, "text": "hello", "combo": None,
+              "direction": None, "amount": None, "ms": None})
+    assert typ == Type("hello")
+
+    scroll = _p({"action": "scroll", "target": {"type": "point", "x": 5, "y": 6},
+                 "direction": None, "amount": None})  # nulls -> sane defaults
+    assert scroll == Scroll(5, 6, "down", 3)
+
+    wait = _p({"action": "wait", "ms": None})
+    assert wait == Wait(1000)

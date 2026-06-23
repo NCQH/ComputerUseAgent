@@ -106,6 +106,36 @@ async def test_history_summary_is_sent_to_model():
     assert "open the menu" in sent
 
 
+async def test_ocr_failure_degrades_to_grid_not_screenshot_error():
+    """A missing tesseract binary (OCR backend raises) must NOT fail the whole
+    step. Marks are skipped; the grid/point path still yields an action."""
+    def boom_ocr(_img):
+        raise RuntimeError("tesseract is not installed or it's not in your PATH")
+
+    reply = json.dumps({"action": "click", "done": False,
+                        "target": {"type": "point", "x": 10, "y": 10}})
+    provider = GenericVisionProvider(FakeClient(reply), ocr=boom_ocr,
+                                     use_marks=True, use_grid=True, zoom=False)
+    resp = await provider.next_actions(_screenshot_b64(), History())
+    assert resp.actions == [Click(10, 10)]
+    assert "screenshot error" not in resp.assistant_text
+
+
+async def test_targeting_hint_tells_model_when_marks_absent():
+    """When OCR yields no marks, the prompt must say so, so the model uses
+    grid/point instead of inventing mark ids."""
+    def empty_ocr(_img):
+        return {"text": [], "conf": [], "left": [], "top": [], "width": [], "height": []}
+
+    reply = json.dumps({"action": "none", "done": True})
+    client = FakeClient(reply)
+    provider = GenericVisionProvider(client, ocr=empty_ocr, use_grid=True, zoom=False)
+    await provider.next_actions(_screenshot_b64(), History())
+    sent = json.dumps(client.chat.completions.calls[0]["messages"])
+    assert "NO marks available" in sent
+    assert "grid available" in sent
+
+
 async def test_corrupt_screenshot_does_not_raise():
     reply = json.dumps({"action": "none", "done": False, "reasoning": "ok"})
     client = FakeClient(reply)

@@ -12,11 +12,30 @@ from cua.providers.vision import ocr as _ocr
 
 _SYSTEM = (
     "You control a computer by looking at a screenshot and choosing ONE action. "
-    "Interactive elements are boxed and numbered (marks); a labelled coordinate grid "
-    "is also overlaid. Prefer referencing a mark id, else a grid cell, else a point. "
+    "To point at something set `target`: {\"type\":\"mark\",\"id\":N} for a visible "
+    "numbered box, {\"type\":\"grid\",\"cell\":N} for a numbered grid cell, or "
+    "{\"type\":\"point\",\"x\":X,\"y\":Y} for raw pixels. Use ONLY targeting aids "
+    "listed as available below — never invent a mark id that is not shown. "
     "First verify whether your previous action (see history) had the intended effect; "
     "if it did not, correct course. Reply ONLY with the JSON action object."
 )
+
+
+def _targeting_hint(marks: dict, grid: dict) -> str:
+    """Describe exactly which targeting aids are present this step, so the model
+    does not hallucinate mark ids when OCR/marks are unavailable."""
+    parts = []
+    if marks:
+        ids = sorted(marks)
+        parts.append(f"marks available: ids {ids[0]}..{ids[-1]}")
+    else:
+        parts.append("NO marks available - do not use target type 'mark'")
+    if grid:
+        parts.append(f"grid available: cells 0..{max(grid)}")
+    else:
+        parts.append("no grid")
+    parts.append("point (pixel x,y) always available")
+    return "Targeting aids — " + "; ".join(parts) + "."
 
 
 class GenericVisionProvider:
@@ -33,6 +52,7 @@ class GenericVisionProvider:
         self.grid_cols = grid_cols
         self.grid_rows = grid_rows
         self.zoom = zoom
+        self._ocr_unavailable = False
 
     def _summarize_history(self, history: History) -> str:
         lines = []
@@ -50,18 +70,26 @@ class GenericVisionProvider:
         img = _imaging.decode(screenshot_b64)
         marks: dict[int, tuple[int, int]] = {}
         grid: dict[int, tuple[int, int]] = {}
-        if self.use_marks:
-            boxes = _ocr.detect_text_boxes(img, ocr=self.ocr)
-            img, marks = _imaging.annotate_marks(img, boxes)
+        if self.use_marks and not self._ocr_unavailable:
+            try:
+                boxes = _ocr.detect_text_boxes(img, ocr=self.ocr)
+                img, marks = _imaging.annotate_marks(img, boxes)
+            except Exception:  # noqa: BLE001
+                # OCR backend unavailable (e.g. tesseract binary not on PATH).
+                # Degrade to grid/point targeting instead of failing the step,
+                # and stop retrying OCR on every subsequent screenshot.
+                self._ocr_unavailable = True
+                marks = {}
         if self.use_grid:
             img, grid = _imaging.overlay_grid(img, self.grid_cols, self.grid_rows)
         return _imaging.encode(img), marks, grid
 
-    def _call(self, annotated_b64: str, history_text: str):
+    def _call(self, annotated_b64: str, history_text: str, targeting: str):
         messages = [
             {"role": "system", "content": _SYSTEM},
             {"role": "user", "content": [
-                {"type": "text", "text": f"History:\n{history_text}\nChoose the next action."},
+                {"type": "text",
+                 "text": f"{targeting}\nHistory:\n{history_text}\nChoose the next action."},
                 {"type": "image_url",
                  "image_url": {"url": f"data:image/png;base64,{annotated_b64}"}},
             ]},
@@ -81,7 +109,8 @@ class GenericVisionProvider:
             return ProviderResponse([], done=False, assistant_text=f"screenshot error: {exc}",
                                     model_flagged_risky=False)
         try:
-            content = self._call(annotated_b64, self._summarize_history(history))
+            content = self._call(annotated_b64, self._summarize_history(history),
+                                  _targeting_hint(marks, grid))
             obj = json.loads(content)
         except Exception as exc:  # noqa: BLE001 — surfaced, never raised
             return ProviderResponse([], done=False, assistant_text=f"parse error: {exc}",

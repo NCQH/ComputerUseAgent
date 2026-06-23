@@ -5,23 +5,27 @@ from cua.models import (
     Action, Click, DoubleClick, Type, Key, Scroll, Move, Drag, Wait, Screenshot,
 )
 
+# OpenAI structured-output "strict" mode requires every object's `required` to
+# list EVERY key in `properties`, and every object to set additionalProperties
+# False. Optional fields are therefore expressed as nullable and still required;
+# the model nulls the keys it doesn't use, and parse_action treats null as absent.
 _TARGET_SCHEMA = {
-    "type": "object",
+    "type": ["object", "null"],
     "properties": {
         "type": {"type": "string", "enum": ["mark", "grid", "point"]},
-        "id": {"type": "integer"},
-        "cell": {"type": "integer"},
-        "x": {"type": "integer"},
-        "y": {"type": "integer"},
+        "id": {"type": ["integer", "null"]},
+        "cell": {"type": ["integer", "null"]},
+        "x": {"type": ["integer", "null"]},
+        "y": {"type": ["integer", "null"]},
     },
-    "required": ["type"],
+    "required": ["type", "id", "cell", "x", "y"],
     "additionalProperties": False,
 }
 
 ACTION_SCHEMA = {
     "type": "object",
     "properties": {
-        "reasoning": {"type": "string"},
+        "reasoning": {"type": ["string", "null"]},
         "done": {"type": "boolean"},
         "action": {
             "type": "string",
@@ -30,13 +34,15 @@ ACTION_SCHEMA = {
         },
         "target": _TARGET_SCHEMA,
         "end_target": _TARGET_SCHEMA,
-        "text": {"type": "string"},
-        "combo": {"type": "string"},
-        "direction": {"type": "string", "enum": ["up", "down", "left", "right"]},
-        "amount": {"type": "integer"},
-        "ms": {"type": "integer"},
+        "text": {"type": ["string", "null"]},
+        "combo": {"type": ["string", "null"]},
+        "direction": {"type": ["string", "null"],
+                      "enum": ["up", "down", "left", "right", None]},
+        "amount": {"type": ["integer", "null"]},
+        "ms": {"type": ["integer", "null"]},
     },
-    "required": ["action"],
+    "required": ["reasoning", "done", "action", "target", "end_target",
+                 "text", "combo", "direction", "amount", "ms"],
     "additionalProperties": False,
 }
 
@@ -66,12 +72,14 @@ def parse_action(obj, *, marks, grid_centers, display_size) -> Action | None:
         return None
     if action == "screenshot":
         return Screenshot()
+    # `or default` (not `.get(k, default)`): strict mode sends every key with a
+    # null value for the ones it isn't using, so the keys are present-but-None.
     if action == "wait":
-        return Wait(ms=int(obj.get("ms", 1000)))
+        return Wait(ms=int(obj.get("ms") or 1000))
     if action == "type":
-        return Type(text=obj.get("text", ""))
+        return Type(text=obj.get("text") or "")
     if action == "key":
-        return Key(combo=obj.get("combo", ""))
+        return Key(combo=obj.get("combo") or "")
 
     point = _resolve(obj.get("target"), marks, grid_centers)
     if action == "click":
@@ -89,7 +97,8 @@ def parse_action(obj, *, marks, grid_centers, display_size) -> Action | None:
     if action == "scroll":
         if point is None:
             return None
-        return Scroll(point[0], point[1], obj.get("direction", "down"), int(obj.get("amount", 3)))
+        return Scroll(point[0], point[1], obj.get("direction") or "down",
+                      int(obj.get("amount") or 3))
     if action == "drag":
         end = _resolve(obj.get("end_target"), marks, grid_centers)
         if point is None or end is None:
