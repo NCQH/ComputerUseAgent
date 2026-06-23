@@ -24,3 +24,8 @@ def test_overrides():
 def test_invalid_ui_rejected():
     with pytest.raises(SystemExit):
         parse_args(["--ui", "hologram"])
+
+
+def test_generic_and_vision_providers_accepted():
+    assert parse_args(["--provider", "generic"]).provider == "generic"
+    assert parse_args(["--provider", "vision"]).provider == "vision"
