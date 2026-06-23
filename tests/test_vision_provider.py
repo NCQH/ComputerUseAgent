@@ -85,6 +85,16 @@ async def test_malformed_reply_does_not_raise():
     assert "parse error" in resp.assistant_text
 
 
+async def test_malformed_target_does_not_raise():
+    # a "point" target missing x/y would raise KeyError in parse_action;
+    # next_actions must still return a safe response, not raise.
+    reply = json.dumps({"action": "click", "target": {"type": "point"}})
+    provider = GenericVisionProvider(FakeClient(reply), ocr=_fake_ocr, use_grid=False, zoom=False)
+    resp = await provider.next_actions(_screenshot_b64(), History())
+    assert resp.actions == []
+    assert "bad action" in resp.assistant_text
+
+
 async def test_history_summary_is_sent_to_model():
     reply = json.dumps({"action": "none", "done": True})
     client = FakeClient(reply)

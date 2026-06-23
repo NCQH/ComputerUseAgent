@@ -89,7 +89,9 @@ class GenericVisionProvider:
         try:
             action = _actions.parse_action(
                 obj, marks=marks, grid_centers=grid, display_size=self.display_size)
-        except ValueError as exc:
+        except (ValueError, KeyError, TypeError) as exc:
+            # KeyError/TypeError can arise from a malformed target (e.g. a "point"
+            # missing x/y) that slipped past the schema — still never raise.
             return ProviderResponse([], done=False, assistant_text=f"bad action: {exc}",
                                     model_flagged_risky=False)
         return ProviderResponse(
