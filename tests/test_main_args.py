@@ -29,3 +29,8 @@ def test_invalid_ui_rejected():
 def test_generic_and_vision_providers_accepted():
     assert parse_args(["--provider", "generic"]).provider == "generic"
     assert parse_args(["--provider", "vision"]).provider == "vision"
+
+
+def test_local_and_host_executors_accepted():
+    assert parse_args(["--executor", "local"]).executor == "local"
+    assert parse_args(["--executor", "host"]).executor == "host"

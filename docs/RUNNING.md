@@ -67,6 +67,30 @@ prompt — answer `y` to allow, anything else to reject.
 
 ---
 
+## A2. Local backend (REAL host desktop) ⚠️
+
+`--executor local` (alias `host`) drives the machine you are sitting at, directly,
+via pyautogui — **no sandbox**. The agent's clicks and keystrokes land on your real
+screen, windows, and files.
+
+```bash
+pip install -e ".[local,vision]"      # pyautogui + Pillow (+ the vision provider)
+python -m cua --ui cli --provider generic --executor local
+```
+
+- The executor adopts your real screen resolution automatically and screenshots
+  the real display each step.
+- The `IrreversibilityGate` is the **only** guard here: denylisted targets,
+  destructive key combos, and model-flagged steps still prompt for `y/n`
+  confirmation, but ordinary actions execute immediately on your machine.
+- Set-of-Marks needs the tesseract binary (`winget install UB-Mannheim.TesseractOCR`).
+  Without it the provider degrades to grid/point targeting automatically.
+
+> Safety: prefer the Docker sandbox (section A) for experimentation. Use `local`
+> only when you actually want the agent to operate your real desktop, and watch it.
+
+---
+
 ## B. Web backend (Playwright)
 
 The web executor drives a Playwright `page`. `build_executor("web", page=None)`

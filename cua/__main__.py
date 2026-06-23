@@ -13,7 +13,8 @@ def parse_args(argv=None) -> argparse.Namespace:
     parser.add_argument("--ui", choices=["cli", "gui"], default="cli")
     parser.add_argument("--provider", choices=["claude", "openai", "generic", "vision"],
                         default="claude")
-    parser.add_argument("--executor", choices=["web", "desktop"], default="desktop")
+    parser.add_argument("--executor", choices=["web", "desktop", "local", "host"],
+                        default="desktop")
     parser.add_argument("--width", type=int, default=1280)
     parser.add_argument("--height", type=int, default=800)
     return parser.parse_args(argv)

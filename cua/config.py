@@ -6,6 +6,7 @@ from cua.providers.openai import OpenAIProvider
 from cua.providers.vision.provider import GenericVisionProvider
 from cua.executors.web import WebExecutor
 from cua.executors.desktop import DesktopExecutor
+from cua.executors.local import LocalExecutor
 
 
 def build_provider(name: str, *, client=None, display_size: tuple[int, int] = (1280, 800)):
@@ -43,4 +44,7 @@ def build_executor(name, *, page=None, client=None, display_size=(1280, 800)):
             import httpx  # lazy; only needed for the real HTTP client
             client = httpx.AsyncClient()
         return DesktopExecutor(client=client, display_size=display_size)
+    if key in ("local", "host"):
+        # Drives the REAL host desktop via pyautogui — no sandbox.
+        return LocalExecutor(display_size=display_size)
     raise ValueError(f"unknown executor: {name!r}")
