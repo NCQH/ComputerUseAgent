@@ -94,3 +94,13 @@ async def test_history_summary_is_sent_to_model():
     await provider.next_actions(_screenshot_b64(), h)
     sent = json.dumps(client.chat.completions.calls[0]["messages"])
     assert "open the menu" in sent
+
+
+async def test_corrupt_screenshot_does_not_raise():
+    reply = json.dumps({"action": "none", "done": False, "reasoning": "ok"})
+    client = FakeClient(reply)
+    provider = GenericVisionProvider(client, ocr=_fake_ocr, use_grid=False, zoom=False)
+    resp = await provider.next_actions("@@@not-base64@@@", History())
+    assert isinstance(resp, __import__("cua.models", fromlist=["ProviderResponse"]).ProviderResponse)
+    assert resp.actions == []
+    assert resp.assistant_text  # non-empty

@@ -75,7 +75,11 @@ class GenericVisionProvider:
         return resp.choices[0].message.content
 
     async def next_actions(self, screenshot_b64: str, history: History) -> ProviderResponse:
-        annotated_b64, marks, grid = self._annotate(screenshot_b64)
+        try:
+            annotated_b64, marks, grid = self._annotate(screenshot_b64)
+        except Exception as exc:  # noqa: BLE001 — surfaced, never raised
+            return ProviderResponse([], done=False, assistant_text=f"screenshot error: {exc}",
+                                    model_flagged_risky=False)
         try:
             content = self._call(annotated_b64, self._summarize_history(history))
             obj = json.loads(content)
