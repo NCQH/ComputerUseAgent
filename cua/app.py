@@ -1,11 +1,16 @@
 """Assemble a wired AgentSession from provider/executor names + injected clients."""
 from __future__ import annotations
 
+import time
+from pathlib import Path
+
 from cua.config import build_provider, build_executor, environment_for_executor
+from cua.core.audit import AuditSink, NullAuditSink
 from cua.core.events import EventBus
 from cua.core.queue import InputQueue
-from cua.core.safety import IrreversibilityGate
+from cua.core.safety import IrreversibilityGate, SafetyConfig
 from cua.core.session import AgentSession
+from cua.telemetry.recorder import TrajectoryRecorder
 
 
 def validate_display_size(display_size) -> None:
@@ -32,6 +37,11 @@ def build_session(
     provider_retries=2,
     max_runtime_seconds=None,
     max_repeated_actions=None,
+    safety=None,
+    session_id=None,
+    audit_dir=".cua/audit",
+    trajectory_enabled=True,
+    runs_dir=".cua/runs",
 ) -> AgentSession:
     validate_display_size(display_size)
     environment = environment_for_executor(executor_name)
@@ -43,8 +53,22 @@ def build_session(
         executor = build_executor("web", page=page, display_size=display_size)
     else:
         executor = build_executor(executor_name, display_size=display_size)
-    gate = IrreversibilityGate(denylist=denylist)
+    # `denylist=` kept as a top-level shortcut; a full SafetyConfig (sensitive
+    # surfaces, catastrophic BLOCK keys, audit toggle) overrides it when given.
+    cfg = safety if safety is not None else SafetyConfig(denylist=denylist)
+    gate = IrreversibilityGate.from_config(cfg)
+    sid = session_id or time.strftime("%Y%m%d-%H%M%S")
+
+    if cfg.audit_enabled:
+        audit = AuditSink(Path(audit_dir) / f"{sid}.jsonl")
+    else:
+        audit = NullAuditSink()
+
     bus = EventBus()
+    # SPEC-3: post-hoc trajectory record. Purely a bus subscriber — opt out by
+    # passing trajectory_enabled=False (tests don't subscribe one).
+    if trajectory_enabled:
+        bus.subscribe(TrajectoryRecorder(Path(runs_dir) / sid).on_event)
     queue = InputQueue()
     return AgentSession(
         provider=provider,
@@ -57,4 +81,5 @@ def build_session(
         provider_retries=provider_retries,
         max_runtime_seconds=max_runtime_seconds,
         max_repeated_actions=max_repeated_actions,
+        audit=audit,
     )
