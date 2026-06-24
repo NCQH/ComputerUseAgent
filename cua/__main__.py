@@ -12,7 +12,8 @@ def parse_args(argv=None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(prog="cua", description="Computer-Use Agent")
     parser.add_argument("--ui", choices=["cli", "gui"], default="cli")
     parser.add_argument("--provider",
-                        choices=["claude", "openai", "generic", "vision", "browser", "dom"],
+                        choices=["claude", "openai", "generic", "vision", "browser", "dom",
+                                 "a11y", "uia"],
                         default="claude")
     parser.add_argument("--executor", choices=["web", "local", "host"],
                         default="local")
@@ -65,6 +66,10 @@ def main(argv=None) -> None:
 
     if args.provider.strip().lower() in ("browser", "dom") and not is_web:
         raise SystemExit("--provider browser/dom reads the DOM and requires --executor web")
+
+    if args.provider.strip().lower() in ("a11y", "uia") and is_web:
+        raise SystemExit("--provider a11y reads the desktop accessibility tree and requires "
+                         "--executor local")
 
     if args.headed and not is_web:
         import sys

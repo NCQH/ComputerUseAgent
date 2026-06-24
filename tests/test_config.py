@@ -30,6 +30,20 @@ def test_build_openai_defaults_to_browser_when_unset():
     assert p.environment == "browser"
 
 
+def test_build_a11y_provider_with_uia_backend():
+    from cua.providers.a11y.provider import A11yVisionProvider
+    from cua.providers.a11y.uia_backend import UiaBackend
+    p = build_provider("a11y", client=object(), display_size=(800, 600))
+    assert isinstance(p, A11yVisionProvider)
+    assert isinstance(p.backend, UiaBackend)
+    assert p.display_size == (800, 600)
+
+
+def test_build_a11y_alias_uia():
+    from cua.providers.a11y.provider import A11yVisionProvider
+    assert isinstance(build_provider("uia", client=object()), A11yVisionProvider)
+
+
 def test_environment_for_executor_maps_backends():
     assert environment_for_executor("web") == "browser"
     assert environment_for_executor("local", platform="win32") == "windows"

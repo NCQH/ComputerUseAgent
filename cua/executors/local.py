@@ -15,6 +15,7 @@ import asyncio
 import base64
 import time
 
+from cua.core.safety import SafetyContext
 from cua.executors.action_payload import action_to_payload
 from cua.models import Action, StepResult
 
@@ -90,6 +91,13 @@ class LocalExecutor:
     async def close(self) -> None:
         return None
 
+    async def context(self) -> SafetyContext:
+        """Active-surface context for the safety gate: the focused window title.
+        Lazy `pygetwindow`; absent dep or failure -> None title (graceful, same
+        pattern as OCR). Gated behind the `[local]` extra."""
+        title = await asyncio.to_thread(_active_window_title)
+        return SafetyContext("local", active_title=title)
+
     async def screenshot(self) -> str:
         if self._gui is None:
             await asyncio.to_thread(self._ensure_gui)
@@ -110,6 +118,18 @@ class LocalExecutor:
             return StepResult(success=True, screenshot_b64=shot)
         except Exception as exc:  # noqa: BLE001 — surfaced in StepResult
             return StepResult(success=False, error=str(exc))
+
+
+def _active_window_title() -> str | None:
+    """Focused-window title via pygetwindow; None if unavailable. Never raises."""
+    try:
+        import pygetwindow  # lazy; part of the [local] extra
+        win = pygetwindow.getActiveWindow()
+        if win is None:
+            return None
+        return getattr(win, "title", None) or None
+    except Exception:  # noqa: BLE001 — degrade to no title, never break the run
+        return None
 
 
 def _make_host_gui(failsafe: bool = True):

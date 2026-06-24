@@ -15,9 +15,10 @@ from cua.core.events import (
     StateChanged,
     StepCompleted,
 )
+from cua.core.audit import AuditRecorder, NullAuditSink
 from cua.core.history import History
 from cua.core.queue import InputQueue
-from cua.core.safety import IrreversibilityGate
+from cua.core.safety import IrreversibilityGate, SafetyContext, Verdict
 from cua.executors.base import Executor
 from cua.models import ConfirmRequest
 from cua.providers.base import CUAProvider
@@ -45,10 +46,14 @@ class AgentSession:
         provider_retries: int = 0,
         retry_backoff_base: float = 0.5,
         sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
+        audit: AuditRecorder | None = None,
     ) -> None:
         self.provider = provider
         self.executor = executor
         self.gate = gate
+        # Append-only forensic log of every gated action. NullAuditSink by default
+        # (tests), a real JSONL AuditSink wired in app.build_session.
+        self.audit: AuditRecorder = audit if audit is not None else NullAuditSink()
         self.bus = bus
         self.queue = queue
         self.confirm_handler = confirm_handler
@@ -78,6 +83,18 @@ class AgentSession:
     def _set_state(self, state: SessionState) -> None:
         self.state = state
         self.bus.publish(StateChanged(state=state.value))
+
+    async def _safety_context(self) -> SafetyContext | None:
+        """Best-effort active-surface context (window title / URL). Optional
+        executor capability; absent or failing -> None (gate degrades to
+        context-blind, same as before)."""
+        ctx_fn = getattr(self.executor, "context", None)
+        if ctx_fn is None:
+            return None
+        try:
+            return await ctx_fn()
+        except Exception:  # noqa: BLE001 — context is advisory; never break the run
+            return None
 
     async def _next_actions_with_retry(self, screenshot: str):
         """Call the provider, retrying transient failures with exponential backoff.
@@ -145,21 +162,37 @@ class AgentSession:
                 if resp.done and self.queue.is_empty():
                     break
 
+                ctx = await self._safety_context()
+
                 for action in resp.actions:
                     if self._stop:
                         break
-                    needs, reason = self.gate.needs_confirmation(
-                        action, resp.assistant_text, resp.model_flagged_risky
+                    verdict = self.gate.decide(
+                        action, resp.assistant_text, resp.model_flagged_risky, ctx
                     )
-                    if needs:
-                        request = ConfirmRequest(action=action, reason=reason)
+                    redact = self.gate.is_sensitive_context(ctx)
+
+                    if verdict.verdict is Verdict.BLOCK:
+                        self.audit.record(action, verdict, ctx, None, redact_text=redact)
+                        msg = f"BLOCKED by {verdict.policy}: {verdict.reason}"
+                        self.history.add_error(msg)
+                        self.bus.publish(LogMessage(text=msg))
+                        continue  # never executes, even if user would confirm
+
+                    if verdict.verdict is Verdict.CONFIRM:
+                        request = ConfirmRequest(action=action, reason=verdict.reason)
                         self._set_state(SessionState.WAITING_CONFIRM)
                         self.bus.publish(ConfirmRequested(request=request))
                         approved = await self.confirm_handler(request)
                         self._set_state(SessionState.RUNNING)
+                        self.audit.record(action, verdict, ctx, approved, redact_text=redact)
                         if not approved:
-                            self.history.add_error(f"User rejected: {action} ({reason})")
+                            self.history.add_error(
+                                f"User rejected: {action} ({verdict.reason})"
+                            )
                             continue
+                    else:  # ALLOW
+                        self.audit.record(action, verdict, ctx, None, redact_text=redact)
 
                     result = await self.executor.do(action)
                     self.history.add_action_result(action, result)

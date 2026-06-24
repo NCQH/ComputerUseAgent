@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import base64
 
+from cua.core.safety import SafetyContext
 from cua.executors.web_translate import WebOp, action_to_web_ops
 from cua.models import Action, StepResult
 
@@ -15,6 +16,14 @@ class WebExecutor:
 
     async def start(self) -> None:
         return None
+
+    async def context(self) -> SafetyContext:
+        """Active-surface context for the safety gate: the current page URL."""
+        try:
+            url = self.page.url
+        except Exception:  # noqa: BLE001 — advisory; degrade to no URL
+            url = None
+        return SafetyContext("web", url=url)
 
     async def close(self) -> None:
         return None

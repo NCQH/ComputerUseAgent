@@ -9,7 +9,18 @@ venv/
 # SDD scratch (handoff briefs, reports, review packages, progress ledger)
 .superpowers/
 
+# Tooling artifacts (Playwright MCP browser session logs/snapshots)
+.playwright-mcp/
+
+# CUA runtime: audit log + trajectory runs (never commit)
+.cua/
+
 # Secrets — never commit real API keys
 .env
 .env.*
 !.env.example
+# >>> harness (generated runtime — never commit) >>>
+harness/state/
+harness/standards/.snapshots/
+harness/e2e/RUN-LOG.md
+# <<< harness <<<
