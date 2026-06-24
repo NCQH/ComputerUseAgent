@@ -36,6 +36,17 @@ def test_browser_and_dom_providers_accepted():
     assert parse_args(["--provider", "dom"]).provider == "dom"
 
 
+def test_a11y_and_uia_providers_accepted():
+    assert parse_args(["--provider", "a11y"]).provider == "a11y"
+    assert parse_args(["--provider", "uia"]).provider == "uia"
+
+
+def test_a11y_provider_with_web_executor_is_rejected():
+    from cua.__main__ import main
+    with pytest.raises(SystemExit):
+        main(["--provider", "a11y", "--executor", "web"])
+
+
 def test_local_and_host_executors_accepted():
     assert parse_args(["--executor", "local"]).executor == "local"
     assert parse_args(["--executor", "host"]).executor == "host"
