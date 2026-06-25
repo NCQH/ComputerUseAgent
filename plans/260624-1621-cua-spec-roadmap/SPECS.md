@@ -381,6 +381,14 @@ project name and PyPI package would clash. Blocks a clean public/PyPI release.
 - Tests: +14 (`test_a11y_provider`, `test_a11y_backend`, +config/+main-args); suite 230→244, 0 regressions.
 - NOTE: backend logic is unit-tested against fakes; the *real* UIA walk needs a manual smoke
   on the Windows desktop (no live-API coverage in CI).
+- SMOKE 2026-06-25 (Windows, `uiautomation` installed): real `UiaBackend().elements()` walk
+  verified end-to-end against live foreground windows — enumerated real controls (caption
+  buttons on a console; 60 elements capped from a richer editor window) with correct geometry
+  and the exact DOM-shape contract; `parse_elements`/`boxes_of`/`describe` consumed the live
+  output and produced a valid numbered Set-of-Marks list (2626 chars, 60 marks). Only the
+  LLM round-trip remains unexercised (API cost + drives the real desktop — a user-present step).
+  Note: `describe()` output is safe in the run path (goes into LLM JSON / utf-8 audit+trajectory
+  writes); the cp1252 console only fails when *printing* VN control names — not a code defect.
 
 ## SPEC-5 — implemented 2026-06-24
 - `cua/registry.py`: `Registry` (decorator `register(*names)`, `create(name, **kw)`, `names()`);
