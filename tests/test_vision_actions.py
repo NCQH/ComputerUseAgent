@@ -1,6 +1,6 @@
 import pytest
-from cua.providers.vision.actions import ACTION_SCHEMA, parse_action
-from cua.models import Click, DoubleClick, Type, Key, Scroll, Move, Drag, Wait, Screenshot
+from adaptivecua.providers.vision.actions import ACTION_SCHEMA, parse_action
+from adaptivecua.models import Click, DoubleClick, Type, Key, Scroll, Move, Drag, Wait, Screenshot
 
 MARKS = {0: (20, 20), 1: (60, 70)}
 GRID = {5: (320, 240)}

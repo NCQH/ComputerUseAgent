@@ -1,7 +1,7 @@
 import pytest
-from cua.config import build_provider, environment_for_executor
-from cua.providers.anthropic import AnthropicProvider
-from cua.providers.openai import OpenAIProvider
+from adaptivecua.config import build_provider, environment_for_executor
+from adaptivecua.providers.anthropic import AnthropicProvider
+from adaptivecua.providers.openai import OpenAIProvider
 
 
 def test_build_claude_with_injected_client():
@@ -31,8 +31,8 @@ def test_build_openai_defaults_to_browser_when_unset():
 
 
 def test_build_a11y_provider_with_uia_backend():
-    from cua.providers.a11y.provider import A11yVisionProvider
-    from cua.providers.a11y.uia_backend import UiaBackend
+    from adaptivecua.providers.a11y.provider import A11yVisionProvider
+    from adaptivecua.providers.a11y.uia_backend import UiaBackend
     p = build_provider("a11y", client=object(), display_size=(800, 600))
     assert isinstance(p, A11yVisionProvider)
     assert isinstance(p.backend, UiaBackend)
@@ -40,7 +40,7 @@ def test_build_a11y_provider_with_uia_backend():
 
 
 def test_build_a11y_alias_uia():
-    from cua.providers.a11y.provider import A11yVisionProvider
+    from adaptivecua.providers.a11y.provider import A11yVisionProvider
     assert isinstance(build_provider("uia", client=object()), A11yVisionProvider)
 
 

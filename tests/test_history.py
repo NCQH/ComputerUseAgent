@@ -1,7 +1,7 @@
-from cua.core.history import (
+from adaptivecua.core.history import (
     History, UserEntry, AssistantEntry, ActionEntry, ErrorEntry,
 )
-from cua.models import Click, StepResult
+from adaptivecua.models import Click, StepResult
 
 
 def test_entries_record_in_order():

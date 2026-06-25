@@ -1,6 +1,6 @@
 import pytest
-from cua.executors.web_translate import WebOp, action_to_web_ops, normalize_key, _WHEEL_STEP
-from cua.models import (
+from adaptivecua.executors.web_translate import WebOp, action_to_web_ops, normalize_key, _WHEEL_STEP
+from adaptivecua.models import (
     Click, DoubleClick, TripleClick, Move, Type, Key, Scroll, Drag, Wait, Screenshot,
 )
 

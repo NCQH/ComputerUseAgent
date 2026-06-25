@@ -1,7 +1,7 @@
 """Unit tests for DOM interactive-element extraction (browser_use Set-of-Marks)."""
 from __future__ import annotations
 
-from cua.providers.browser.dom_marks import (
+from adaptivecua.providers.browser.dom_marks import (
     Element, boxes_of, describe, parse_elements,
 )
 

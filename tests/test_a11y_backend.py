@@ -1,5 +1,5 @@
 """Unit tests for the UIA backend: graceful degrade + record mapping (no real UIA)."""
-from cua.providers.a11y.uia_backend import NullBackend, UiaBackend, _short_type
+from adaptivecua.providers.a11y.uia_backend import NullBackend, UiaBackend, _short_type
 
 
 def test_short_type_strips_control_suffix():

@@ -1,8 +1,8 @@
 """Wiring tests for the DOM browser provider (build_provider / build_session)."""
 import pytest
 
-from cua.app import build_session
-from cua.config import build_provider
+from adaptivecua.app import build_session
+from adaptivecua.config import build_provider
 
 
 async def _confirm(_req):
@@ -15,7 +15,7 @@ def test_build_browser_provider_needs_page():
 
 
 def test_build_browser_provider_with_page():
-    from cua.providers.browser.provider import DomVisionProvider
+    from adaptivecua.providers.browser.provider import DomVisionProvider
     page = object()
     p = build_provider("browser", client=object(), page=page, display_size=(800, 600))
     assert isinstance(p, DomVisionProvider)
@@ -24,8 +24,8 @@ def test_build_browser_provider_with_page():
 
 
 def test_build_session_browser_provider_shares_page_with_web_executor():
-    from cua.providers.browser.provider import DomVisionProvider
-    from cua.executors.web import WebExecutor
+    from adaptivecua.providers.browser.provider import DomVisionProvider
+    from adaptivecua.executors.web import WebExecutor
     page = object()
     session = build_session(
         "browser", "web",

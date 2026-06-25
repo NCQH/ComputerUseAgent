@@ -1,8 +1,8 @@
 """In-memory fakes for testing the core without API or Docker."""
 from __future__ import annotations
 
-from cua.core.history import History
-from cua.models import Action, ProviderResponse, StepResult
+from adaptivecua.core.history import History
+from adaptivecua.models import Action, ProviderResponse, StepResult
 
 
 class FakeProvider:

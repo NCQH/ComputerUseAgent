@@ -1,7 +1,7 @@
 # tests/test_openai_provider.py
-from cua.providers.openai import OpenAIProvider
-from cua.core.history import History
-from cua.models import Click
+from adaptivecua.providers.openai import OpenAIProvider
+from adaptivecua.core.history import History
+from adaptivecua.models import Click
 
 
 class _Item:

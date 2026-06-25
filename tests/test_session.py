@@ -1,10 +1,10 @@
 # tests/test_session.py
-from cua.core.session import AgentSession, SessionState
-from cua.core.queue import InputQueue
-from cua.core.events import EventBus, StepCompleted, ConfirmRequested, ErrorOccurred, LogMessage
-from cua.core.history import History, UserEntry, ErrorEntry
-from cua.core.safety import IrreversibilityGate
-from cua.models import Click, Type, ProviderResponse, ConfirmRequest
+from adaptivecua.core.session import AgentSession, SessionState
+from adaptivecua.core.queue import InputQueue
+from adaptivecua.core.events import EventBus, StepCompleted, ConfirmRequested, ErrorOccurred, LogMessage
+from adaptivecua.core.history import History, UserEntry, ErrorEntry
+from adaptivecua.core.safety import IrreversibilityGate
+from adaptivecua.models import Click, Type, ProviderResponse, ConfirmRequest
 from tests.fakes import FakeProvider, FakeExecutor
 
 
@@ -102,7 +102,7 @@ async def test_executor_failure_recorded_in_history():
     executor = FakeExecutor(fail_on=Type)
     session = _session(provider, executor)
     await session.run()
-    from cua.core.history import ActionEntry
+    from adaptivecua.core.history import ActionEntry
     failed = [e for e in session.history.entries()
               if isinstance(e, ActionEntry) and not e.result.success]
     assert len(failed) == 1

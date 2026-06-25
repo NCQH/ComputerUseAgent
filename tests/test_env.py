@@ -3,7 +3,7 @@ import shutil
 import tempfile
 from pathlib import Path
 
-from cua.env import load_dotenv
+from adaptivecua.env import load_dotenv
 
 
 def _make_env(content: str) -> Path:

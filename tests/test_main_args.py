@@ -1,5 +1,5 @@
 import pytest
-from cua.__main__ import parse_args
+from adaptivecua.__main__ import parse_args
 
 
 def test_defaults():
@@ -42,7 +42,7 @@ def test_a11y_and_uia_providers_accepted():
 
 
 def test_a11y_provider_with_web_executor_is_rejected():
-    from cua.__main__ import main
+    from adaptivecua.__main__ import main
     with pytest.raises(SystemExit):
         main(["--provider", "a11y", "--executor", "web"])
 

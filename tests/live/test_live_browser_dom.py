@@ -11,7 +11,7 @@ import os
 
 import pytest
 
-from cua.env import load_dotenv
+from adaptivecua.env import load_dotenv
 
 load_dotenv()
 
@@ -47,9 +47,9 @@ async def _approve(_req):
 
 
 async def test_dom_provider_clicks_correct_button_by_mark():
-    from cua.app import build_session
-    from cua.core.events import LogMessage
-    from cua.executors.web_launch import BrowserSession
+    from adaptivecua.app import build_session
+    from adaptivecua.core.events import LogMessage
+    from adaptivecua.executors.web_launch import BrowserSession
 
     async with BrowserSession(display_size=SIZE, headless=True) as page:
         await page.set_content(PAGE_HTML)

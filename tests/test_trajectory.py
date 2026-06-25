@@ -2,15 +2,15 @@
 import base64
 import json
 
-from cua.core.events import (
+from adaptivecua.core.events import (
     ConfirmRequested,
     ErrorOccurred,
     LogMessage,
     ScreenshotTaken,
     StepCompleted,
 )
-from cua.models import Click, ConfirmRequest, StepResult, Type
-from cua.telemetry.recorder import TrajectoryRecorder
+from adaptivecua.models import Click, ConfirmRequest, StepResult, Type
+from adaptivecua.telemetry.recorder import TrajectoryRecorder
 
 PNG = base64.b64encode(b"\x89PNG\r\n\x1a\nfakebytes").decode()
 

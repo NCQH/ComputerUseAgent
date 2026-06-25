@@ -1,7 +1,7 @@
 """Unit tests for the Playwright browser launcher (fakes, no real browser)."""
 from __future__ import annotations
 
-from cua.executors.web_launch import BrowserSession
+from adaptivecua.executors.web_launch import BrowserSession
 
 
 class FakePage:

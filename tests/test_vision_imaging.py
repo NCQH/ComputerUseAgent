@@ -2,7 +2,7 @@ import pytest
 pytest.importorskip("PIL")
 
 from PIL import Image
-from cua.providers.vision.imaging import decode, encode, overlay_grid, annotate_marks, crop_region
+from adaptivecua.providers.vision.imaging import decode, encode, overlay_grid, annotate_marks, crop_region
 
 
 def _img(w=120, h=80):

@@ -1,5 +1,5 @@
 """SPEC-4 Safety/Policy v2: policies, chain severity, context-awareness."""
-from cua.core.safety import (
+from adaptivecua.core.safety import (
     DenylistPolicy,
     DestructiveKeyPolicy,
     IrreversibilityGate,
@@ -11,7 +11,7 @@ from cua.core.safety import (
     SensitiveContextPolicy,
     Verdict,
 )
-from cua.models import Click, Key, Move, Type
+from adaptivecua.models import Click, Key, Move, Type
 
 
 # --- individual policies -------------------------------------------------

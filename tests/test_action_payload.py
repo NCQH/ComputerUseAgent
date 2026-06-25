@@ -1,6 +1,6 @@
 import pytest
-from cua.executors.action_payload import action_to_payload
-from cua.models import (
+from adaptivecua.executors.action_payload import action_to_payload
+from adaptivecua.models import (
     Click, DoubleClick, TripleClick, Move, Type, Key, Scroll, Drag, Wait, Screenshot,
 )
 

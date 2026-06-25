@@ -1,7 +1,7 @@
 import pytest
-from cua.config import build_executor
-from cua.executors.web import WebExecutor
-from cua.executors.local import LocalExecutor
+from adaptivecua.config import build_executor
+from adaptivecua.executors.web import WebExecutor
+from adaptivecua.executors.local import LocalExecutor
 
 
 def test_build_web_with_injected_page():

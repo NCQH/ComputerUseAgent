@@ -7,10 +7,10 @@ pytest.importorskip("PIL")
 
 from PIL import Image
 
-from cua.core.history import History
-from cua.models import Click, Type
-from cua.providers.browser.provider import DomVisionProvider
-from cua.providers.vision.imaging import encode
+from adaptivecua.core.history import History
+from adaptivecua.models import Click, Type
+from adaptivecua.providers.browser.provider import DomVisionProvider
+from adaptivecua.providers.vision.imaging import encode
 
 
 def _screenshot_b64(w=800, h=600):

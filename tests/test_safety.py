@@ -1,5 +1,5 @@
-from cua.core.safety import IrreversibilityGate
-from cua.models import Click, Type, Key, Move
+from adaptivecua.core.safety import IrreversibilityGate
+from adaptivecua.models import Click, Type, Key, Move
 
 
 def test_model_flag_forces_confirmation():

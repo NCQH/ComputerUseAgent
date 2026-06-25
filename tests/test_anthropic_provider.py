@@ -1,6 +1,6 @@
-from cua.providers.anthropic import AnthropicProvider
-from cua.core.history import History
-from cua.models import Click
+from adaptivecua.providers.anthropic import AnthropicProvider
+from adaptivecua.core.history import History
+from adaptivecua.models import Click
 
 
 class _Block:
