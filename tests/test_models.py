@@ -1,6 +1,6 @@
 from dataclasses import FrozenInstanceError
 import pytest
-from cua.models import (
+from adaptivecua.models import (
     Click, Type, Key, Scroll, Move, Drag, Screenshot, Wait,
     StepResult, ConfirmRequest, ProviderResponse,
 )

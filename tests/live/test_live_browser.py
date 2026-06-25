@@ -12,7 +12,7 @@ import os
 
 import pytest
 
-from cua.env import load_dotenv
+from adaptivecua.env import load_dotenv
 
 load_dotenv()
 
@@ -45,8 +45,8 @@ async def _approve(_req):
 
 
 async def test_agent_clicks_button_in_real_browser():
-    from cua.app import build_session
-    from cua.executors.web_launch import BrowserSession
+    from adaptivecua.app import build_session
+    from adaptivecua.executors.web_launch import BrowserSession
 
     async with BrowserSession(display_size=SIZE, headless=True) as page:
         await page.set_content(PAGE_HTML)
@@ -61,7 +61,7 @@ async def test_agent_clicks_button_in_real_browser():
             max_repeated_actions=4,
         )
         logs: list[str] = []
-        from cua.core.events import LogMessage
+        from adaptivecua.core.events import LogMessage
         session.bus.subscribe(
             lambda e: logs.append(e.text) if isinstance(e, LogMessage) else None)
 

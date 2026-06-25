@@ -1,6 +1,6 @@
 # tests/test_runner.py
 import asyncio
-from cua.ui.runner import SessionRunner
+from adaptivecua.ui.runner import SessionRunner
 
 
 class OneShotSession:

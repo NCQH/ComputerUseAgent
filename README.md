@@ -56,7 +56,7 @@ cua/
 │   └── gui.py        GUI shell (PySide6 + qasync, lazy)
 ├── app.py        build_session — wires provider+executor+gate+bus+queue
 ├── config.py     build_provider / build_executor factories (lazy SDKs)
-└── __main__.py   Entrypoint: python -m cua --ui ... --provider ... --executor ...
+└── __main__.py   Entrypoint: python -m adaptivecua --ui ... --provider ... --executor ...
 ```
 
 **Neutral action vocabulary** (`cua/models.py`) is the contract between brain and
@@ -110,13 +110,13 @@ cp .env.example .env && $EDITOR .env     # ANTHROPIC_API_KEY / OPENAI_API_KEY
 export ANTHROPIC_API_KEY=sk-ant-...      # or OPENAI_API_KEY=sk-...
 
 # CLI on the real host desktop (default ui=cli, executor=local, provider=claude)
-python -m cua
+python -m adaptivecua
 
 # DOM Set-of-Marks (browser_use-style) driving a headless browser
-python -m cua --provider browser --executor web
+python -m adaptivecua --provider browser --executor web
 
 # generic vision model, show the browser window, cap a runaway run
-python -m cua --provider generic --executor web --headed --max-runtime 120
+python -m adaptivecua --provider generic --executor web --headed --max-runtime 120
 ```
 
 Flags: `--ui {cli,gui}` · `--provider {claude,openai,generic,vision,browser,dom}` ·

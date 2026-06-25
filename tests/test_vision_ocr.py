@@ -1,4 +1,4 @@
-from cua.providers.vision.ocr import detect_text_boxes
+from adaptivecua.providers.vision.ocr import detect_text_boxes
 
 
 def _fake_ocr_factory(data):

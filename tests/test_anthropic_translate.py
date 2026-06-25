@@ -1,6 +1,6 @@
 import pytest
-from cua.providers.anthropic_translate import claude_action_to_neutral, COMPUTER_TOOL
-from cua.models import (
+from adaptivecua.providers.anthropic_translate import claude_action_to_neutral, COMPUTER_TOOL
+from adaptivecua.models import (
     Click, DoubleClick, TripleClick, Move, Drag, Type, Key, Scroll, Screenshot, Wait,
 )
 

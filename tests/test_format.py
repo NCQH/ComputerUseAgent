@@ -1,8 +1,8 @@
-from cua.ui.format import format_event
-from cua.core.events import (
+from adaptivecua.ui.format import format_event
+from adaptivecua.core.events import (
     StateChanged, StepCompleted, ScreenshotTaken, LogMessage, ConfirmRequested, ErrorOccurred,
 )
-from cua.models import Click, StepResult, ConfirmRequest
+from adaptivecua.models import Click, StepResult, ConfirmRequest
 
 
 def test_state_change():

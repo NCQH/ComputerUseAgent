@@ -21,7 +21,7 @@ keystrokes land on your real screen, windows, and files.
 
 ```bash
 pip install -e ".[local,vision]"      # pyautogui + Pillow (+ the vision provider)
-python -m cua --ui cli --provider generic --executor local
+python -m adaptivecua --ui cli --provider generic --executor local
 ```
 
 - The executor adopts your real screen resolution automatically and screenshots
@@ -48,9 +48,9 @@ so no launcher script is needed:
 
 ```bash
 pip install -e ".[web]" && playwright install chromium
-python -m cua --ui cli --provider browser --executor web        # DOM Set-of-Marks (recommended)
-python -m cua --ui cli --provider generic --executor web        # OCR/grid vision
-python -m cua --ui cli --provider browser --executor web --headed  # show the window
+python -m adaptivecua --ui cli --provider browser --executor web        # DOM Set-of-Marks (recommended)
+python -m adaptivecua --ui cli --provider generic --executor web        # OCR/grid vision
+python -m adaptivecua --ui cli --provider browser --executor web --headed  # show the window
 ```
 
 `--provider browser` (DomVisionProvider) reads the page's interactive elements
@@ -75,10 +75,10 @@ injected page:
 ```python
 # run_web.py
 import asyncio
-from cua.app import build_session
-from cua.executors.web_launch import BrowserSession
-from cua.ui.cli import run_cli
-from cua.ui.confirm import make_cli_confirm_handler
+from adaptivecua.app import build_session
+from adaptivecua.executors.web_launch import BrowserSession
+from adaptivecua.ui.cli import run_cli
+from adaptivecua.ui.confirm import make_cli_confirm_handler
 
 
 async def ask() -> str:

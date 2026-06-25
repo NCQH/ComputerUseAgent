@@ -1,5 +1,5 @@
-from cua.ui.confirm import make_cli_confirm_handler, auto_approve, auto_reject
-from cua.models import ConfirmRequest, Click
+from adaptivecua.ui.confirm import make_cli_confirm_handler, auto_approve, auto_reject
+from adaptivecua.models import ConfirmRequest, Click
 
 
 async def test_auto_helpers():

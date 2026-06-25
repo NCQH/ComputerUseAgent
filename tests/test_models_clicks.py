@@ -1,6 +1,6 @@
 import pytest
 from dataclasses import FrozenInstanceError
-from cua.models import DoubleClick, TripleClick
+from adaptivecua.models import DoubleClick, TripleClick
 
 
 def test_double_click_defaults_to_left():

@@ -9,7 +9,7 @@ import asyncio
 import os
 import sys
 
-from cua.env import load_dotenv
+from adaptivecua.env import load_dotenv
 
 load_dotenv()
 print("OPENAI_API_KEY present:", bool(os.environ.get("OPENAI_API_KEY")))
@@ -17,9 +17,9 @@ model = sys.argv[1] if len(sys.argv) > 1 else "gpt-5.4-mini"
 print("model:", model)
 
 from PIL import Image, ImageDraw  # noqa: E402
-from cua.providers.vision.imaging import encode  # noqa: E402
-from cua.providers.vision.provider import GenericVisionProvider  # noqa: E402
-from cua.core.history import History  # noqa: E402
+from adaptivecua.providers.vision.imaging import encode  # noqa: E402
+from adaptivecua.providers.vision.provider import GenericVisionProvider  # noqa: E402
+from adaptivecua.core.history import History  # noqa: E402
 
 # synthetic 400x240 screenshot with one labelled button
 img = Image.new("RGB", (400, 240), (245, 245, 245))

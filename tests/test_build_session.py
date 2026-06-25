@@ -1,11 +1,11 @@
 import pytest
-from cua.app import build_session, validate_display_size
-from cua.core.session import AgentSession
-from cua.core.events import EventBus
-from cua.core.queue import InputQueue
-from cua.core.safety import IrreversibilityGate
-from cua.providers.anthropic import AnthropicProvider
-from cua.executors.web import WebExecutor
+from adaptivecua.app import build_session, validate_display_size
+from adaptivecua.core.session import AgentSession
+from adaptivecua.core.events import EventBus
+from adaptivecua.core.queue import InputQueue
+from adaptivecua.core.safety import IrreversibilityGate
+from adaptivecua.providers.anthropic import AnthropicProvider
+from adaptivecua.executors.web import WebExecutor
 
 
 async def _confirm(_req):
@@ -47,8 +47,8 @@ def test_build_session_rejects_bad_display_size():
 
 
 def test_build_session_local_openai_uses_host_environment():
-    from cua.config import environment_for_executor
-    from cua.providers.openai import OpenAIProvider
+    from adaptivecua.config import environment_for_executor
+    from adaptivecua.providers.openai import OpenAIProvider
     session = build_session(
         "openai", "local",
         confirm_handler=_confirm,
@@ -74,7 +74,7 @@ def test_build_session_threads_runtime_guards():
 
 
 def test_build_session_local_uses_local_executor():
-    from cua.executors.local import LocalExecutor
+    from adaptivecua.executors.local import LocalExecutor
     session = build_session(
         "openai", "local",
         confirm_handler=_confirm,

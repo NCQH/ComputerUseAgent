@@ -21,7 +21,7 @@ import time
 
 import pytest
 
-from cua.env import load_dotenv
+from adaptivecua.env import load_dotenv
 
 load_dotenv()
 
@@ -44,8 +44,8 @@ def _screen_size() -> tuple[int, int]:
 
 
 async def test_agent_clicks_real_desktop_button():
-    from cua.app import build_session
-    from cua.core.events import LogMessage
+    from adaptivecua.app import build_session
+    from adaptivecua.core.events import LogMessage
 
     sentinel = os.path.join(tempfile.mkdtemp(prefix="cua_live_"), "clicked.txt")
     ready = sentinel + ".ready"

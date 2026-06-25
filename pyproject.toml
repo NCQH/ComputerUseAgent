@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "cua"
+name = "adaptivecua"
 version = "0.1.0"
 requires-python = ">=3.11"
 
@@ -20,7 +20,7 @@ ui = ["prompt_toolkit>=3.0", "PySide6>=6.6", "qasync>=0.27"]
 vision = ["openai>=1.40", "Pillow>=10", "pytesseract>=0.3"]
 
 [tool.setuptools.packages.find]
-include = ["cua*"]
+include = ["adaptivecua*"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

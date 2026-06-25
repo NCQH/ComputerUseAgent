@@ -10,11 +10,11 @@ pytest.importorskip("PIL")
 
 from PIL import Image
 
-from cua.core.history import History
-from cua.models import Click, Type
-from cua.providers.a11y.provider import A11yVisionProvider
-from cua.providers.a11y.uia_backend import NullBackend
-from cua.providers.vision.imaging import encode
+from adaptivecua.core.history import History
+from adaptivecua.models import Click, Type
+from adaptivecua.providers.a11y.provider import A11yVisionProvider
+from adaptivecua.providers.a11y.uia_backend import NullBackend
+from adaptivecua.providers.vision.imaging import encode
 
 
 def _screenshot_b64(w=800, h=600):

@@ -1,4 +1,4 @@
-from cua.core.events import EventBus, LogMessage, ErrorOccurred
+from adaptivecua.core.events import EventBus, LogMessage, ErrorOccurred
 
 
 def test_subscriber_receives_published_event():

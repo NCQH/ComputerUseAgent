@@ -15,13 +15,13 @@ try:
 except Exception:
     pass
 
-from cua.core.events import EventBus
-from cua.core.queue import InputQueue
-from cua.core.safety import IrreversibilityGate
-from cua.core.session import AgentSession
-from cua.executors.local import LocalExecutor
-from cua.models import Click, ProviderResponse
-from cua.ui.format import format_event
+from adaptivecua.core.events import EventBus
+from adaptivecua.core.queue import InputQueue
+from adaptivecua.core.safety import IrreversibilityGate
+from adaptivecua.core.session import AgentSession
+from adaptivecua.executors.local import LocalExecutor
+from adaptivecua.models import Click, ProviderResponse
+from adaptivecua.ui.format import format_event
 
 
 class FakeGui:

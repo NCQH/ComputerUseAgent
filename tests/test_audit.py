@@ -1,9 +1,9 @@
 """SPEC-4 audit sink: append-only JSONL, redaction, null no-op."""
 import json
 
-from cua.core.audit import REDACTED, AuditSink, NullAuditSink
-from cua.core.safety import PolicyResult, SafetyContext, Verdict
-from cua.models import Click, Type
+from adaptivecua.core.audit import REDACTED, AuditSink, NullAuditSink
+from adaptivecua.core.safety import PolicyResult, SafetyContext, Verdict
+from adaptivecua.models import Click, Type
 
 
 def _result(verdict=Verdict.CONFIRM):

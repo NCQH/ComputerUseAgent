@@ -1,11 +1,11 @@
 """SPEC-4 session wiring: BLOCK never executes, CONFIRM/ALLOW audited,
 sensitive context flows from executor.context() into the gate."""
-from cua.core.events import EventBus, LogMessage
-from cua.core.history import ErrorEntry
-from cua.core.queue import InputQueue
-from cua.core.safety import IrreversibilityGate, SafetyContext, Verdict
-from cua.core.session import AgentSession
-from cua.models import Click, Key, ProviderResponse, Type
+from adaptivecua.core.events import EventBus, LogMessage
+from adaptivecua.core.history import ErrorEntry
+from adaptivecua.core.queue import InputQueue
+from adaptivecua.core.safety import IrreversibilityGate, SafetyContext, Verdict
+from adaptivecua.core.session import AgentSession
+from adaptivecua.models import Click, Key, ProviderResponse, Type
 from tests.fakes import FakeExecutor, FakeProvider
 
 

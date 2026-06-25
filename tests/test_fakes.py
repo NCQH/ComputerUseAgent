@@ -1,5 +1,5 @@
-from cua.core.history import History
-from cua.models import Click, Type, ProviderResponse
+from adaptivecua.core.history import History
+from adaptivecua.models import Click, Type, ProviderResponse
 from tests.fakes import FakeProvider, FakeExecutor
 
 

@@ -1,6 +1,6 @@
 import pytest
-from cua.providers.openai_translate import openai_action_to_neutral
-from cua.models import Click, DoubleClick, Scroll, Type, Key, Wait, Screenshot, Move, Drag
+from adaptivecua.providers.openai_translate import openai_action_to_neutral
+from adaptivecua.models import Click, DoubleClick, Scroll, Type, Key, Wait, Screenshot, Move, Drag
 
 
 def test_click_defaults_left():

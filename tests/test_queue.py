@@ -1,4 +1,4 @@
-from cua.core.queue import InputQueue
+from adaptivecua.core.queue import InputQueue
 
 
 async def test_drain_returns_all_pending_in_fifo_order():

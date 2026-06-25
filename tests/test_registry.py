@@ -1,7 +1,7 @@
 """SPEC-5 registry: decorator registration, dispatch, clear unknown-name error."""
 import pytest
 
-from cua.registry import PROVIDERS, EXECUTORS, Registry
+from adaptivecua.registry import PROVIDERS, EXECUTORS, Registry
 
 
 def test_register_and_create_by_name():

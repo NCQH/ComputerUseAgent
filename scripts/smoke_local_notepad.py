@@ -15,8 +15,8 @@ import os
 import tempfile
 import time
 
-from cua.executors.local import LocalExecutor
-from cua.models import Key, Type
+from adaptivecua.executors.local import LocalExecutor
+from adaptivecua.models import Key, Type
 
 OUT = os.path.join(tempfile.gettempdir(), "cua_real_test.txt")
 TEXT = "Hello from CUA real-flow test"

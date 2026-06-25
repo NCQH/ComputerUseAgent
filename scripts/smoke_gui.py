@@ -15,13 +15,13 @@ import sys
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QApplication, QLineEdit, QPushButton, QTextEdit
 
-from cua.core.events import EventBus
-from cua.core.queue import InputQueue
-from cua.core.safety import IrreversibilityGate
-from cua.core.session import AgentSession
-from cua.models import Click, ProviderResponse, StepResult
-from cua.ui.confirm import auto_approve
-from cua.ui.gui import run_gui
+from adaptivecua.core.events import EventBus
+from adaptivecua.core.queue import InputQueue
+from adaptivecua.core.safety import IrreversibilityGate
+from adaptivecua.core.session import AgentSession
+from adaptivecua.models import Click, ProviderResponse, StepResult
+from adaptivecua.ui.confirm import auto_approve
+from adaptivecua.ui.gui import run_gui
 
 TINY_PNG_B64 = base64.b64encode(b"\x89PNG\r\n\x1a\nFAKE").decode()
 TASK = "open notepad and type hello"

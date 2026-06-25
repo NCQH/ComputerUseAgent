@@ -1,6 +1,6 @@
 import base64
-from cua.executors.web import WebExecutor
-from cua.models import Click, Type, Key, Drag, Screenshot
+from adaptivecua.executors.web import WebExecutor
+from adaptivecua.models import Click, Type, Key, Drag, Screenshot
 
 
 class FakeMouse:

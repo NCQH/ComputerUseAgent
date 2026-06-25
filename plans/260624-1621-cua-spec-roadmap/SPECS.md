@@ -338,7 +338,7 @@ project name and PyPI package would clash. Blocks a clean public/PyPI release.
 | SPEC-2 OQ-2b UIA library | **`uiautomation`** (gentler API for enumerate + bounds than pywinauto) |
 | SPEC-2 OQ-2c element scope | Foreground window only (`GetForegroundControl`), depth+count capped |
 | SPEC-5 OQ-5a registry style | **Lightweight internal decorator registry** — NO entry-points/third-party plugins (YAGNI for a personal tool) |
-| SPEC-0 going public? | (pending) |
+| SPEC-0 going public? | **Yes** — renamed package `cua` → `adaptivecua` (PyPI `adaptivecua` verified free, 404) |
 
 ## SPEC-4 — implemented 2026-06-24
 - `cua/core/safety.py`: `Verdict`, `SafetyContext`, `PolicyResult`, `SafetyConfig`, `Policy`
@@ -396,4 +396,13 @@ project name and PyPI package would clash. Blocks a clean public/PyPI release.
 - **SPEC-6 (hybrid grounding)** — OQ-6a: revisit only after real grounding-accuracy pain is
   observed on SPEC-2. None observed yet → YAGNI. Touches the `next_actions` contract; do not
   build on theory.
-- **SPEC-0 (rename `cua`)** — trigger is "only if publishing"; OQ-0a (going public?) unanswered.
+## SPEC-0 — implemented 2026-06-24
+- Renamed import package + dist `cua` → `adaptivecua` (brand "AdaptiveCUA"). PyPI `adaptivecua`
+  and `adaptive-cua` both verified free (404). Resolves the hard collision with `trycua/cua`.
+- `git mv cua adaptivecua` (history preserved) + targeted regex over `adaptivecua/`, `tests/`,
+  `scripts/`, `pyproject.toml`, `README.md`, `docs/RUNNING.md`, `.env.example`. `python -m cua`
+  → `python -m adaptivecua`; `prog`, `name`, `packages.find` updated.
+- The `.cua/` runtime data dir name is intentionally LEFT unchanged (the collision was the
+  package, not the dot-dir; word-boundary regex avoided touching it).
+- Suite: 248 passed, 3 skipped, 0 regressions; `python -m adaptivecua --help` verified.
+- Note: GitHub repo is `ComputerUseAgent` (no collision) — left as-is.

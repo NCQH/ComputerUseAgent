@@ -4,10 +4,10 @@ import pytest
 pytest.importorskip("PIL")
 
 from PIL import Image
-from cua.providers.vision.imaging import encode
-from cua.providers.vision.provider import GenericVisionProvider
-from cua.core.history import History
-from cua.models import Click, Type
+from adaptivecua.providers.vision.imaging import encode
+from adaptivecua.providers.vision.provider import GenericVisionProvider
+from adaptivecua.core.history import History
+from adaptivecua.models import Click, Type
 
 
 def _screenshot_b64(w=200, h=120):
@@ -173,6 +173,6 @@ async def test_corrupt_screenshot_does_not_raise():
     client = FakeClient(reply)
     provider = GenericVisionProvider(client, ocr=_fake_ocr, use_grid=False, zoom=False)
     resp = await provider.next_actions("@@@not-base64@@@", History())
-    assert isinstance(resp, __import__("cua.models", fromlist=["ProviderResponse"]).ProviderResponse)
+    assert isinstance(resp, __import__("adaptivecua.models", fromlist=["ProviderResponse"]).ProviderResponse)
     assert resp.actions == []
     assert resp.assistant_text  # non-empty

@@ -1,8 +1,8 @@
 # tests/test_local_executor.py
 import base64
 
-from cua.executors.local import LocalExecutor, apply_payload
-from cua.models import Click, DoubleClick, Type, Key, Scroll, Drag, Wait, Screenshot
+from adaptivecua.executors.local import LocalExecutor, apply_payload
+from adaptivecua.models import Click, DoubleClick, Type, Key, Scroll, Drag, Wait, Screenshot
 
 
 class FakeGui:
@@ -124,7 +124,7 @@ def test_local_executor_failsafe_on_by_default():
 
 def test_make_host_gui_sets_pyautogui_failsafe():
     import pyautogui
-    from cua.executors.local import _make_host_gui
+    from adaptivecua.executors.local import _make_host_gui
 
     pyautogui.FAILSAFE = False  # force a known-wrong state first
     _make_host_gui()             # default

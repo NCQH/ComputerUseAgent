@@ -1,6 +1,6 @@
 import pytest
-from cua.config import build_provider
-from cua.providers.vision.provider import GenericVisionProvider
+from adaptivecua.config import build_provider
+from adaptivecua.providers.vision.provider import GenericVisionProvider
 
 
 def test_build_generic_with_injected_client():
